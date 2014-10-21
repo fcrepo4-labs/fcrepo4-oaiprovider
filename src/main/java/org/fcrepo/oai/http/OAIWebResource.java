@@ -17,6 +17,7 @@
 package org.fcrepo.oai.http;
 
 import org.fcrepo.oai.ResumptionToken;
+import org.fcrepo.oai.service.OAIProviderService;
 import org.openarchives.oai._2.OAIPMHerrorcodeType;
 import org.openarchives.oai._2.OAIPMHtype;
 import org.openarchives.oai._2.VerbType;
@@ -32,6 +33,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
+import javax.xml.bind.JAXB;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import java.io.InputStream;
@@ -39,10 +41,15 @@ import java.net.URI;
 
 import static org.openarchives.oai._2.VerbType.*;
 
-@Component
-@Scope("prototype")
+@Scope("request")
 @Path("/oai")
 public class OAIWebResource {
+
+    @Inject
+    private Session session;
+
+    @Autowired
+    private OAIProviderService providerService;
 
     @POST
     @Path("/sets")
@@ -62,7 +69,89 @@ public class OAIWebResource {
             @QueryParam("set") String set,
             @QueryParam("resumptionToken") final String resumptionToken,
             @Context final UriInfo uriInfo) throws RepositoryException {
-        return Response.serverError().build();
+        int offset = 0;
+
+        try {
+            return providerService.identify(session, uriInfo);
+        }catch (JAXBException e) {
+            return providerService.error(VerbType.IDENTIFY, null, null, OAIPMHerrorcodeType.BAD_ARGUMENT, "Unable to generate identify response");
+        }
+
+//        /* If there's a resumption token present the data provided in the base64 encoded token is used to generate the request */
+//        if (resumptionToken != null && !resumptionToken.isEmpty()) {
+//            try {
+//                final ResumptionToken token = OAIProviderService.decodeResumptionToken(resumptionToken);
+//                verb = token.getVerb();
+//                from = token.getFrom();
+//                until = token.getUntil();
+//                set = token.getSet();
+//                metadataPrefix = token.getMetadataPrefix();
+//                offset = token.getOffset();
+//            } catch (Exception e) {
+//                return providerService.error(null, null, null, OAIPMHerrorcodeType.BAD_RESUMPTION_TOKEN, "Resumption token is invalid");
+//            }
+//        }
+
+//        /* decide what to do depending on the verb passed */
+//        if (verb == null) {
+//            return providerService.error(null, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT,
+//                    "Verb is required");
+//        }
+//        if (verb.equals(IDENTIFY.value())) {
+//            try {
+//                verifyEmpty(identifier, metadataPrefix, from, until, set);
+//                return providerService.identify(this.session, uriInfo);
+//            }catch(JAXBException | IllegalArgumentException e) {
+//                return providerService.error(VerbType.IDENTIFY, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
+//            }
+//        } else if (verb.equals(LIST_METADATA_FORMATS.value())) {
+//            try {
+//                verifyEmpty(from, until, set);
+//            }catch(IllegalArgumentException e) {
+//                return providerService.error(VerbType.LIST_METADATA_FORMATS, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
+//            }
+//            return providerService.listMetadataFormats(this.session, uriInfo, identifier);
+//        } else if (verb.equals(GET_RECORD.value())) {
+//            try {
+//                verifyEmpty(from, until, set);
+//            }catch(IllegalArgumentException e) {
+//                return providerService.error(VerbType.GET_RECORD, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
+//            }
+//            return providerService.getRecord(this.session, uriInfo, identifier, metadataPrefix);
+//        } else if (verb.equals(LIST_IDENTIFIERS.value())) {
+//            try {
+//                verifyEmpty(identifier);
+//            }catch(IllegalArgumentException e) {
+//                return providerService.error(VerbType.LIST_IDENTIFIERS, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
+//            }
+//            return providerService.listIdentifiers(this.session, uriInfo, metadataPrefix, from, until, set, offset);
+//        } else if (verb.equals(LIST_SETS.value())) {
+//            try {
+//                verifyEmpty(identifier);
+//            }catch(IllegalArgumentException e) {
+//                return providerService.error(VerbType.LIST_SETS, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
+//            }
+//            return providerService.listSets(session, uriInfo, offset);
+//        } else if (verb.equals(LIST_RECORDS.value())) {
+//            try {
+//                verifyEmpty(identifier);
+//            }catch(IllegalArgumentException e) {
+//                return providerService.error(VerbType.LIST_SETS, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
+//            }
+//            return providerService.listRecords(this.session, uriInfo, metadataPrefix, from, until, set, offset);
+//        } else {
+//            return providerService.error(null, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_VERB,
+//                    "The verb '" + verb + "' is invalid");
+//        }
     }
+
+    private void verifyEmpty(String ... data) throws IllegalArgumentException{
+        for (String s:data) {
+            if (s != null && !s.isEmpty())  {
+                throw new IllegalArgumentException("Wrong argument for method");
+            }
+        }
+    }
+
 
 }
