@@ -97,15 +97,18 @@ public class OAIWebResource {
             }
         }
 
-        return providerService.error(VerbType.valueOf(verb), identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_VERB, "Unknown verb '" + verb + "'");
+        /* ListMetadataFormats response */
+        if (verb.equals(LIST_METADATA_FORMATS.value())) {
+            try {
+                verifyEmpty(from, until, set);
+            } catch (IllegalArgumentException e) {
+                return providerService.error(VerbType.LIST_METADATA_FORMATS, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
+            }
+            return providerService.listMetadataFormats(this.session, uriInfo, identifier);
+        }
 
-//        } else if (verb.equals(LIST_METADATA_FORMATS.value())) {
-//            try {
-//                verifyEmpty(from, until, set);
-//            }catch(IllegalArgumentException e) {
-//                return providerService.error(VerbType.LIST_METADATA_FORMATS, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
-//            }
-//            return providerService.listMetadataFormats(this.session, uriInfo, identifier);
+        return providerService.error(null, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_VERB, "Unknown verb '" + verb + "'");
+
 //        } else if (verb.equals(GET_RECORD.value())) {
 //            try {
 //                verifyEmpty(from, until, set);

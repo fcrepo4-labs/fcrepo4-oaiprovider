@@ -30,6 +30,7 @@ import org.openarchives.oai._2.IdentifyType;
 import org.openarchives.oai._2.OAIPMHtype;
 import org.openarchives.oai._2.ObjectFactory;
 import org.slf4j.Logger;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import javax.xml.bind.JAXBContext;
@@ -52,6 +53,7 @@ import static org.slf4j.LoggerFactory.getLogger;
  * @author fasseg
  */
 @RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration("/spring-test/test-container.xml")
 public abstract class AbstractOAIProviderIT {
 
     protected Logger logger;
@@ -123,7 +125,7 @@ public abstract class AbstractOAIProviderIT {
         return client.execute(method).getStatusLine().getStatusCode();
     }
 
-    protected HttpResponse createObject(final String pid) throws IOException {
+    protected HttpResponse createFedoraObject(final String pid) throws IOException {
         final HttpPost httpPost = postObjMethod("/");
         if (pid.length() > 0) {
             httpPost.addHeader("Slug", pid);

@@ -18,8 +18,11 @@ package org.fcrepo.oai.service;
 
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
+import com.hp.hpl.jena.rdf.model.Resource;
+import org.fcrepo.http.commons.api.rdf.HttpResourceConverter;
 import org.fcrepo.http.commons.session.SessionFactory;
 import org.fcrepo.kernel.FedoraBinary;
+import org.fcrepo.kernel.FedoraObject;
 import org.fcrepo.kernel.services.BinaryService;
 import org.fcrepo.kernel.services.NodeService;
 import org.fcrepo.kernel.services.ObjectService;
@@ -31,8 +34,10 @@ import org.openarchives.oai._2.*;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.PostConstruct;
+import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
@@ -42,7 +47,9 @@ import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.transform.stream.StreamSource;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.GregorianCalendar;
+import java.util.List;
 import java.util.Map;
 
 public class OAIProviderService {
@@ -165,62 +172,58 @@ public class OAIProviderService {
         return oaiFactory.createOAIPMH(oai);
     }
 
-//    public JAXBElement<OAIPMHtype> listMetadataFormats(final Session session, final UriInfo uriInfo,
-//                                                       final String identifier) throws RepositoryException {
-//        final HttpIdentifierTranslator translator =
-//                new HttpIdentifierTranslator(session, FedoraNodes.class, uriInfo);
-//        final ListMetadataFormatsType listMetadataFormats = oaiFactory.createListMetadataFormatsType();
-//        if (identifier != null && !identifier.isEmpty()) {
-//            final Resource subject = translator.getSubject("/" + identifier);
-//            final String path = translator.getPathFromSubject(subject);
-//            if (path != null && !path.isEmpty()) {
-//                /* generate metadata format response for a single pid */
-//                if (!this.nodeService.exists(session, path)) {
-//                    return error(VerbType.LIST_METADATA_FORMATS, identifier, null, OAIPMHerrorcodeType.ID_DOES_NOT_EXIST,
-//                            "The object does not exist");
-//                }
-//                final FedoraObject obj = this.objectService.findOrCreateObject(session, "/" + identifier);
-//                final Model model = obj.getPropertiesDataset(translator).getDefaultModel();
-//                for (MetadataFormat mdf : metadataFormats.values()) {
-//                    if (model.listObjectsOfProperty(rdfModel.createProperty(mdf.getPropertyName())).hasNext()) {
-//                        listMetadataFormats.getMetadataFormat().add(mdf.asMetadataFormatType());
-//                    } else {
-//                        return error(VerbType.LIST_METADATA_FORMATS, identifier, null,
-//                                OAIPMHerrorcodeType.NO_METADATA_FORMATS, "No metadata available");
-//                    }
-//                }
-//            }
-//        } else {
-//            /* generate a general metadata format response */
-//            listMetadataFormats.getMetadataFormat().addAll(listAvailableMetadataFormats());
-//        }
-//
-//        final RequestType req = oaiFactory.createRequestType();
-//        req.setVerb(VerbType.LIST_METADATA_FORMATS);
-//        req.setValue(uriInfo.getRequestUri().toASCIIString());
-//
-//        final OAIPMHtype oai = oaiFactory.createOAIPMHtype();
-//        oai.setListMetadataFormats(listMetadataFormats);
-//        oai.setRequest(req);
-//        return oaiFactory.createOAIPMH(oai);
-//    }
+    public JAXBElement<OAIPMHtype> listMetadataFormats(final Session session, final UriInfo uriInfo,
+                                                       final String identifier) throws RepositoryException {
+
+        final ListMetadataFormatsType listMetadataFormats = oaiFactory.createListMetadataFormatsType();
+
+        /* check which formats are available on top of oai_dc for this object */
+        if (identifier != null && !identifier.isEmpty()) {
+            final String path = "/" + identifier;
+            if (path != null && !path.isEmpty()) {
+                /* generate metadata format response for a single pid */
+                if (!this.nodeService.exists(session, path)) {
+                    return error(VerbType.LIST_METADATA_FORMATS, identifier, null, OAIPMHerrorcodeType.ID_DOES_NOT_EXIST,
+                            "The object does not exist");
+                }
+                final FedoraObject obj = this.objectService.findOrCreateObject(session, "/" + identifier);
+                for (MetadataFormat mdf : metadataFormats.values()) {
+                    if (mdf.getPrefix().equals("oai_dc") || obj.hasProperty(mdf.getPropertyName())) {
+                        listMetadataFormats.getMetadataFormat().add(mdf.asMetadataFormatType());
+                    }
+                }
+            }
+        } else {
+            /* generate a general metadata format response */
+            listMetadataFormats.getMetadataFormat().addAll(listAvailableMetadataFormats());
+        }
+
+        final RequestType req = oaiFactory.createRequestType();
+        req.setVerb(VerbType.LIST_METADATA_FORMATS);
+        req.setValue(uriInfo.getRequestUri().toASCIIString());
+
+        final OAIPMHtype oai = oaiFactory.createOAIPMHtype();
+        oai.setListMetadataFormats(listMetadataFormats);
+        oai.setRequest(req);
+        return oaiFactory.createOAIPMH(oai);
+    }
 //
 //    private List<MetadataFormatType> listObjectMetadataFormats(final Session session, final FedoraObject obj) throws RepositoryException {
 //        final List<MetadataFormatType> types = new ArrayList<>();
 //        return types;
 //    }
 //
-//    private List<MetadataFormatType> listAvailableMetadataFormats() {
-//        final List<MetadataFormatType> types = new ArrayList<>(metadataFormats.size());
-//        for (MetadataFormat mdf : metadataFormats.values()) {
-//            final MetadataFormatType mdft = oaiFactory.createMetadataFormatType();
-//            mdft.setMetadataPrefix(mdf.getPrefix());
-//            mdft.setMetadataNamespace(mdf.getNamespace());
-//            mdft.setSchema(mdf.getSchemaUrl());
-//            types.add(mdft);
-//        }
-//        return types;
-//    }
+    private List<MetadataFormatType> listAvailableMetadataFormats() {
+        final List<MetadataFormatType> types = new ArrayList<>(metadataFormats.size());
+        for (MetadataFormat mdf : metadataFormats.values()) {
+            final MetadataFormatType mdft = oaiFactory.createMetadataFormatType();
+            mdft.setMetadataPrefix(mdf.getPrefix());
+            mdft.setMetadataNamespace(mdf.getNamespace());
+            mdft.setSchema(mdf.getSchemaUrl());
+            types.add(mdft);
+        }
+        return types;
+    }
 //
 //    public void setMetadataFormats(final Map<String, MetadataFormat> metadataFormats) {
 //        this.metadataFormats = metadataFormats;

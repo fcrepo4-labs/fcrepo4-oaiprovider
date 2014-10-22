@@ -36,7 +36,6 @@ import java.io.StringWriter;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-@ContextConfiguration("/spring-test/test-container.xml")
 public class IdentifyIT extends AbstractOAIProviderIT {
 
     @PostConstruct
