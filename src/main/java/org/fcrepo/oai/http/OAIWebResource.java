@@ -16,14 +16,11 @@
 
 package org.fcrepo.oai.http;
 
-import org.fcrepo.oai.ResumptionToken;
 import org.fcrepo.oai.service.OAIProviderService;
 import org.openarchives.oai._2.OAIPMHerrorcodeType;
-import org.openarchives.oai._2.OAIPMHtype;
 import org.openarchives.oai._2.VerbType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
-import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
 import javax.jcr.RepositoryException;
@@ -33,11 +30,8 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
-import javax.xml.bind.JAXB;
-import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import java.io.InputStream;
-import java.net.URI;
 
 import static org.openarchives.oai._2.VerbType.*;
 
@@ -71,11 +65,6 @@ public class OAIWebResource {
             @Context final UriInfo uriInfo) throws RepositoryException {
         int offset = 0;
 
-        try {
-            return providerService.identify(session, uriInfo);
-        }catch (JAXBException e) {
-            return providerService.error(VerbType.IDENTIFY, null, null, OAIPMHerrorcodeType.BAD_ARGUMENT, "Unable to generate identify response");
-        }
 
 //        /* If there's a resumption token present the data provided in the base64 encoded token is used to generate the request */
 //        if (resumptionToken != null && !resumptionToken.isEmpty()) {
@@ -92,18 +81,24 @@ public class OAIWebResource {
 //            }
 //        }
 
-//        /* decide what to do depending on the verb passed */
-//        if (verb == null) {
-//            return providerService.error(null, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT,
-//                    "Verb is required");
-//        }
-//        if (verb.equals(IDENTIFY.value())) {
-//            try {
-//                verifyEmpty(identifier, metadataPrefix, from, until, set);
-//                return providerService.identify(this.session, uriInfo);
-//            }catch(JAXBException | IllegalArgumentException e) {
-//                return providerService.error(VerbType.IDENTIFY, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
-//            }
+        /* decide what to do depending on the verb passed */
+        if (verb == null) {
+            return providerService.error(null, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT,
+                    "Verb is required");
+        }
+
+        /* identify response */
+        if (verb.equals(IDENTIFY.value())) {
+            try {
+                verifyEmpty(identifier, metadataPrefix, from, until, set);
+                return providerService.identify(this.session, uriInfo);
+            } catch (JAXBException | IllegalArgumentException e) {
+                return providerService.error(VerbType.IDENTIFY, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
+            }
+        }
+
+        return providerService.error(VerbType.valueOf(verb), identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_VERB, "Unknown verb '" + verb + "'");
+
 //        } else if (verb.equals(LIST_METADATA_FORMATS.value())) {
 //            try {
 //                verifyEmpty(from, until, set);

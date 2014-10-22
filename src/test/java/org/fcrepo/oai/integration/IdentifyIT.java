@@ -17,18 +17,60 @@
 package org.fcrepo.oai.integration;
 
 import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
 import org.junit.Test;
+import org.openarchives.oai._2.IdentifyType;
 import org.openarchives.oai._2.OAIPMHtype;
 import org.openarchives.oai._2.VerbType;
 import org.springframework.test.context.ContextConfiguration;
 
+import javax.annotation.PostConstruct;
 import javax.xml.bind.JAXBElement;
+import javax.xml.namespace.QName;
+
+import java.io.IOException;
+import java.io.StringWriter;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 @ContextConfiguration("/spring-test/test-container.xml")
 public class IdentifyIT extends AbstractOAIProviderIT {
+
+    @PostConstruct
+    public void initTests() throws Exception {
+        /* Check and/or add the default Identify response */
+        if (!defaultIdentityResponseExists()) {
+            IdentifyType id = this.oaiFactory.createIdentifyType();
+            id.setRepositoryName("Fedora 4 Test Instance");
+            id.setBaseURL(this.serverAddress);
+
+            HttpPost post = new HttpPost(this.serverAddress);
+            StringWriter data = new StringWriter();
+            this.marshaller.marshal(new JAXBElement<IdentifyType>(new QName("Identify"), IdentifyType.class, id), data);
+            post.setEntity(new StringEntity(data.toString()));
+            post.addHeader("Content-Type","application/octet-stream");
+            post.addHeader("Slug", "oai_identify");
+            try {
+                HttpResponse resp = this.client.execute(post);
+                assertEquals(201, resp.getStatusLine().getStatusCode());
+            } finally {
+                post.releaseConnection();
+            }
+        }
+    }
+
+    protected boolean defaultIdentityResponseExists() throws IOException {
+        HttpGet get = new HttpGet(serverAddress + "/oai_identify/fcr:content");
+        try {
+            HttpResponse resp = this.client.execute(get);
+            return resp.getStatusLine().getStatusCode() == 200;
+        } finally {
+            get.releaseConnection();
+        }
+    }
 
     @Test
     @SuppressWarnings("unchecked")

@@ -28,6 +28,7 @@ import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.openarchives.oai._2.IdentifyType;
 import org.openarchives.oai._2.OAIPMHtype;
+import org.openarchives.oai._2.ObjectFactory;
 import org.slf4j.Logger;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -75,6 +76,8 @@ public abstract class AbstractOAIProviderIT {
     protected Unmarshaller unmarshaller;
 
     protected Marshaller marshaller;
+
+    protected ObjectFactory oaiFactory = new ObjectFactory();
 
     public AbstractOAIProviderIT() {
         connectionManager.setMaxTotal(MAX_VALUE);
