@@ -19,6 +19,9 @@ package org.fcrepo.oai.service;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.Resource;
+import com.sun.corba.se.spi.orbutil.fsm.Input;
+import org.apache.commons.io.IOUtils;
+import org.fcrepo.generator.dublincore.DublinCoreGenerators;
 import org.fcrepo.http.commons.api.rdf.HttpResourceConverter;
 import org.fcrepo.http.commons.session.SessionFactory;
 import org.fcrepo.kernel.FedoraBinary;
@@ -46,11 +49,9 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.transform.stream.StreamSource;
+import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.GregorianCalendar;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class OAIProviderService {
 
@@ -95,6 +96,9 @@ public class OAIProviderService {
 
     @Autowired
     private ObjectService objectService;
+
+    @Autowired
+    private DublinCoreGenerators dcGenerators;
 
     public void setPropertyHasSetSpec(String propertyHasSetSpec) {
         this.propertyHasSetSpec = propertyHasSetSpec;
@@ -229,80 +233,66 @@ public class OAIProviderService {
 //        this.metadataFormats = metadataFormats;
 //    }
 //
-//    public JAXBElement<OAIPMHtype> getRecord(final Session session, final UriInfo uriInfo, final String identifier,
-//                                             final String metadataPrefix) throws RepositoryException {
-//        final HttpIdentifierTranslator translator = new HttpIdentifierTranslator(session, FedoraNodes.class, uriInfo);
-//        final MetadataFormat format = metadataFormats.get(metadataPrefix);
-//        if (format == null) {
-//            return error(VerbType.GET_RECORD, identifier, metadataPrefix,
-//                    OAIPMHerrorcodeType.CANNOT_DISSEMINATE_FORMAT, "The metadata format is not available");
-//        }
-//        final Resource subject = translator.getSubject("/" + identifier);
-//        final String path = translator.getPathFromSubject(subject);
-//        if (!this.nodeService.exists(session, path)) {
-//            return error(VerbType.GET_RECORD, identifier, metadataPrefix, OAIPMHerrorcodeType.ID_DOES_NOT_EXIST,
-//                    "The requested identifier does not exist");
-//        }
-//
-//        final FedoraObject obj = this.objectService.findOrCreateObject(session, path);
-//
-//        final Model model = obj.getPropertiesDataset(translator).getDefaultModel();
-//        final StmtIterator it = model.listStatements(subject,
-//                model.createProperty(format.getPropertyName()),
-//                (RDFNode) null);
-//        if (!it.hasNext()) {
-//            return error(VerbType.GET_RECORD, identifier, metadataPrefix, OAIPMHerrorcodeType.NO_RECORDS_MATCH,
-//                    "The record does not have a oai meta data object associated");
-//        }
-//
-//        final String dsPath = translator.getPathFromSubject(it.next().getObject().asResource());
-//        if (!this.nodeService.exists(session, dsPath)) {
-//            return error(VerbType.GET_RECORD, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT,
-//                    "The referenced datastream for the meta data can not be found");
-//        }
-//
-//        final Datastream mdDs =
-//                this.datastreamService.findOrCreateDatastream(session, dsPath);
-//        final OAIPMHtype oai = oaiFactory.createOAIPMHtype();
-//        final RequestType req = oaiFactory.createRequestType();
-//        req.setVerb(VerbType.GET_RECORD);
-//        req.setValue(uriInfo.getRequestUri().toASCIIString());
-//
-//        final GetRecordType getRecord = oaiFactory.createGetRecordType();
-//        final RecordType record = oaiFactory.createRecordType();
-//        getRecord.setRecord(record);
-//
-//        final HeaderType header = oaiFactory.createHeaderType();
-//        header.setIdentifier(identifier);
-//        header.setDatestamp(dateFormat.print(new Date().getTime()));
-//        final StmtIterator itSets = model.listStatements(translator.getSubject("/" + identifier),
-//                model.createProperty(propertyIsPartOfSet),
-//                (RDFNode) null);
-//        if (itSets.hasNext()) {
-//            header.getSetSpec().add(itSets.next().getObject().asLiteral().getString());
-//        }
-//        record.setHeader(header);
-//        // TODO: add set specs
-//
-//        final MetadataType md = oaiFactory.createMetadataType();
-//        try {
-//            String content;
-//            if (metadataPrefix.equals("oai_dc") && autoGenerateOaiDc) {
-//                content = IOUtils.toString(generator.getStream(obj.getNode()));
-//            }else {
-//                content = IOUtils.toString(mdDs.getBinary().getContent());
-//            }
-//            md.setAny(new JAXBElement<String>(new QName(format.getPrefix()), String.class, content));
-//        } catch (IOException e) {
-//            throw new RepositoryException(e);
-//        } finally {
-//            IOUtils.closeQuietly(mdDs.getBinary().getContent());
-//        }
-//        record.setMetadata(md);
-//
-//        oai.setGetRecord(getRecord);
-//        return oaiFactory.createOAIPMH(oai);
-//    }
+    public JAXBElement<OAIPMHtype> getRecord(final Session session, final UriInfo uriInfo, final String identifier,
+                                             final String metadataPrefix) throws RepositoryException {
+        final MetadataFormat format = metadataFormats.get(metadataPrefix);
+        if (format == null) {
+            return error(VerbType.GET_RECORD, identifier, metadataPrefix,
+                    OAIPMHerrorcodeType.CANNOT_DISSEMINATE_FORMAT, "The metadata format is not available");
+        }
+
+        final String path = "/" + identifier;
+        if (!this.nodeService.exists(session, path)) {
+            return error(VerbType.GET_RECORD, identifier, metadataPrefix, OAIPMHerrorcodeType.ID_DOES_NOT_EXIST,
+                    "The requested identifier does not exist");
+        }
+
+        if (format.getPrefix().equals("oai_dc")) {
+            /* generate a OAI DC reponse using the DC Generator from fcrepo4 */
+            return generateOaiDc(session, identifier, uriInfo);
+        } else {
+            /* generate a OAI response from the linked Binary */
+            return fetchOaiResponse(session, identifier, format);
+        }
+    }
+
+    private JAXBElement<OAIPMHtype> generateOaiDc(final Session session, String identifier, UriInfo uriInfo) throws RepositoryException{
+        final FedoraObject obj = this.objectService.findOrCreateObject(session, "/" + identifier);
+
+
+        final OAIPMHtype oai = oaiFactory.createOAIPMHtype();
+        final RequestType req = oaiFactory.createRequestType();
+        req.setVerb(VerbType.GET_RECORD);
+        req.setValue(uriInfo.getRequestUri().toASCIIString());
+
+
+        final GetRecordType getRecord = oaiFactory.createGetRecordType();
+        final RecordType record = oaiFactory.createRecordType();
+        getRecord.setRecord(record);
+
+        final HeaderType header = oaiFactory.createHeaderType();
+        header.setIdentifier(identifier);
+        header.setDatestamp(dateFormat.print(new Date().getTime()));
+        record.setHeader(header);
+
+        final MetadataType md = this.oaiFactory.createMetadataType();
+        final InputStream src = dcGenerators.get(0).getStream(obj.getNode());
+        try {
+            md.setAny(IOUtils.toString(src));
+        } catch (IOException e) {
+            throw new RepositoryException(e);
+        } finally {
+            IOUtils.closeQuietly(src);
+        }
+        record.setMetadata(md);
+
+        oai.setGetRecord(getRecord);
+        return this.oaiFactory.createOAIPMH(oai);
+    }
+
+    private JAXBElement<OAIPMHtype> fetchOaiResponse(Session session, String identifier, MetadataFormat format) {
+        return null;
+    }
 
     public static JAXBElement<OAIPMHtype> error(VerbType verb, String identifier, String metadataPrefix,
                                                 OAIPMHerrorcodeType errorCode, String msg) {

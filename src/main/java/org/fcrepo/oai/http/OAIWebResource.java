@@ -107,15 +107,17 @@ public class OAIWebResource {
             return providerService.listMetadataFormats(this.session, uriInfo, identifier);
         }
 
+        /* GetRecord response */
+        if (verb.equals(GET_RECORD.value())) {
+            try {
+                verifyEmpty(from, until, set);
+            } catch (IllegalArgumentException e) {
+                return providerService.error(VerbType.GET_RECORD, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
+            }
+            return providerService.getRecord(this.session, uriInfo, identifier, metadataPrefix);
+        }
         return providerService.error(null, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_VERB, "Unknown verb '" + verb + "'");
 
-//        } else if (verb.equals(GET_RECORD.value())) {
-//            try {
-//                verifyEmpty(from, until, set);
-//            }catch(IllegalArgumentException e) {
-//                return providerService.error(VerbType.GET_RECORD, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
-//            }
-//            return providerService.getRecord(this.session, uriInfo, identifier, metadataPrefix);
 //        } else if (verb.equals(LIST_IDENTIFIERS.value())) {
 //            try {
 //                verifyEmpty(identifier);
