@@ -277,6 +277,9 @@ public class OAIProviderService {
 
         final MetadataType md = this.oaiFactory.createMetadataType();
         final InputStream src = dcGenerators.get(0).getStream(obj.getNode());
+        if (src == null) {
+            return error(VerbType.GET_RECORD, identifier, "oai_dc", OAIPMHerrorcodeType.CANNOT_DISSEMINATE_FORMAT, "Error occured while trying to generate Dublin Core response");
+        }
         try {
             md.setAny(IOUtils.toString(src));
         } catch (IOException e) {
