@@ -143,23 +143,21 @@ public class OAIWebResource {
             return providerService.listSets(session, uriInfo, offset);
         }
 
-//        } else if (verb.equals(LIST_RECORDS.value())) {
-//            try {
-//                verifyEmpty(identifier);
-//            }catch(IllegalArgumentException e) {
-//                return providerService.error(VerbType.LIST_SETS, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
-//            }
-//            return providerService.listRecords(this.session, uriInfo, metadataPrefix, from, until, set, offset);
-//        } else {
-//            return providerService.error(null, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_VERB,
-//                    "The verb '" + verb + "' is invalid");
-//        }
+        /* list records response */
+        if (verb.equals(LIST_RECORDS.value())) {
+            try {
+                verifyEmpty(identifier);
+                return providerService.listRecords(this.session, uriInfo, metadataPrefix, from, until, set, offset);
+            } catch (IllegalArgumentException e) {
+                return providerService.error(VerbType.LIST_SETS, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
+            }
+        }
         return providerService.error(null, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_VERB, "Unknown verb '" + verb + "'");
     }
 
-    private void verifyEmpty(String ... data) throws IllegalArgumentException{
-        for (String s:data) {
-            if (s != null && !s.isEmpty())  {
+    private void verifyEmpty(String... data) throws IllegalArgumentException {
+        for (String s : data) {
+            if (s != null && !s.isEmpty()) {
                 throw new IllegalArgumentException("Wrong argument for method");
             }
         }

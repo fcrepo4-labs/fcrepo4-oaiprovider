@@ -446,7 +446,7 @@ public class OAIProviderService {
             throw new RepositoryException(e);
         }
     }
-//
+
     public static String encodeResumptionToken(String verb, String metadataPrefix, String from, String until,
                                                String set, int offset) throws UnsupportedEncodingException {
         if (from == null) {
@@ -583,138 +583,125 @@ public class OAIProviderService {
         return id;
     }
 
-//    public JAXBElement<OAIPMHtype> listRecords(Session session, UriInfo uriInfo, String metadataPrefix, String from, String until, String set, int offset) throws RepositoryException {
-//
-//        final HttpIdentifierTranslator translator =
-//                new HttpIdentifierTranslator(session, FedoraNodes.class, uriInfo);
-//
-//        if (metadataPrefix == null) {
-//            return error(VerbType.LIST_RECORDS, null, null, OAIPMHerrorcodeType.BAD_ARGUMENT, "metadataprefix is invalid");
-//        }
-//        final MetadataFormat mdf = metadataFormats.get(metadataPrefix);
-//        if (mdf == null) {
-//            return error(VerbType.LIST_RECORDS, null, metadataPrefix,
-//                    OAIPMHerrorcodeType.CANNOT_DISSEMINATE_FORMAT, "Unavailable metadata format");
-//        }
-//        DateTime fromDateTime = null;
-//        DateTime untilDateTime = null;
-//        try {
-//            fromDateTime = (from != null && !from.isEmpty()) ? dateFormat.parseDateTime(from) : null;
-//            untilDateTime = (until != null && !until.isEmpty()) ? dateFormat.parseDateTime(until) : null;
-//        } catch (IllegalArgumentException e) {
-//            return error(VerbType.LIST_RECORDS, null, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, e.getMessage());
-//        }
-//
-//        final StringBuilder sparql =
-//                new StringBuilder("PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> ")
-//                        .append("SELECT ?sub ?obj WHERE { ")
-//                        .append("?sub <").append(mdf.getPropertyName()).append("> ?obj . ");
-//
-//        final List<String> filters = new ArrayList<>();
-//
-//        if (fromDateTime != null || untilDateTime != null) {
-//            sparql.append("?sub <").append(RdfLexicon.LAST_MODIFIED_DATE).append("> ?date . ");
-//            if (fromDateTime != null) {
-//                filters.add("?date >='" + from + "'^^xsd:dateTime ");
-//            }
-//            if (untilDateTime!= null) {
-//                filters.add("?date <='" + until + "'^^xsd:dateTime ");
-//            }
-//        }
-//
-//        if (set != null && !set.isEmpty()) {
-//            if (!setsEnabled) {
-//                return error(VerbType.LIST_RECORDS, null, metadataPrefix, OAIPMHerrorcodeType.NO_SET_HIERARCHY, "Sets are not enabled");
-//            }
-//            sparql.append("?sub <").append(propertyIsPartOfSet).append("> ?set . ");
-//            filters.add("?set = '" + set + "'");
-//        }
-//
-//        int filterCount = 0;
-//        for (String filter:filters) {
-//            if (filterCount++ == 0) {
-//                sparql.append("FILTER (");
-//            }
-//            sparql.append(filter).append(filterCount == filters.size() ? ")" : " && ");
-//        }
-//        sparql.append("}")
-//                .append(" OFFSET ").append(offset)
-//                .append(" LIMIT ").append(maxListSize);
-//        try {
-//            final JQLConverter jql = new JQLConverter(session, translator, sparql.toString());
-//            final ResultSet result = jql.execute();
-//            final OAIPMHtype oai = oaiFactory.createOAIPMHtype();
-//            final ListRecordsType records = oaiFactory.createListRecordsType();
-//            if (!result.hasNext()) {
-//                return error(VerbType.LIST_RECORDS, null, metadataPrefix, OAIPMHerrorcodeType.NO_RECORDS_MATCH,
-//                        "No record found");
-//            }
-//            while (result.hasNext()) {
-//                // check if the records exists
-//                final RecordType record = oaiFactory.createRecordType();
-//                final HeaderType h = oaiFactory.createHeaderType();
-//                final QuerySolution solution = result.next();
-//                final Resource subjectUri = solution.get("sub").asResource();
-//                final Resource oaiRecordUri = solution.get("obj").asResource();
-//                if (!this.nodeService.exists(session, translator.getPathFromSubject(oaiRecordUri))) {
-//                    continue;
-//                }
-//                h.setIdentifier(subjectUri.getURI());
-//                if (this.nodeService.exists(session, translator.getPathFromSubject(subjectUri))) {
-//                    return error(VerbType.LIST_RECORDS, null,  metadataPrefix, OAIPMHerrorcodeType.ID_DOES_NOT_EXIST, "The object " + subjectUri + " does not exist");
-//                }
-//                final FedoraObject obj =
-//                        this.objectService.findOrCreateObject(session, translator.getPathFromSubject(subjectUri));
-//                h.setDatestamp(dateFormat.print(obj.getLastModifiedDate().getTime()));
-//                // get set names this object is part of
-//                final Model objModel = obj.getPropertiesDataset(translator).getDefaultModel();
-//                final StmtIterator setNames = objModel.listStatements(translator.getSubject(obj.getPath()), objModel.createProperty(propertyIsPartOfSet), (RDFNode) null);
-//                while (setNames.hasNext()) {
-//                    String setName = setNames.next().getObject().asLiteral().getString();
-//                    if (!this.nodeService.exists(session, setsRootPath + "/" + setName)) {
-//                        return error(VerbType.LIST_RECORDS, null, metadataPrefix, OAIPMHerrorcodeType.ID_DOES_NOT_EXIST, "The OAI Set with name " + setName + " does not exist");
-//                    }
-//                    final FedoraObject setObject = this.objectService.findOrCreateObject(session, setsRootPath + "/" + setName);
-//                    final Model setObjectModel = setObject.getPropertiesDataset(translator).getDefaultModel();
-//                    final StmtIterator setSpec = setObjectModel.listStatements(translator.getSubject(setObject.getPath()), objModel.createProperty(propertyHasSetSpec), (RDFNode) null);
-//                    if (setSpec.hasNext()) {
-//                        h.getSetSpec().add(setSpec.next().getObject().asLiteral().getString());
-//                    }
-//                }
-//                // get the metadata record from fcrepo
-//                final MetadataType md = oaiFactory.createMetadataType();
-//                if (!this.nodeService.exists(session, translator.getPathFromSubject(oaiRecordUri))) {
-//                    return error(VerbType.LIST_RECORDS, null, metadataPrefix, OAIPMHerrorcodeType.ID_DOES_NOT_EXIST, "The OAI record does not exist");
-//                }
-//                final Datastream mdDs = this.datastreamService.findOrCreateDatastream(session, translator.getPathFromSubject(oaiRecordUri));
-//                try {
-//                    String content = IOUtils.toString(mdDs.getBinary().getContent());
-//                    md.setAny(new JAXBElement<String>(new QName(mdf.getPrefix()), String.class, content));
-//                } catch (IOException e) {
-//                    throw new RepositoryException(e);
-//                } finally {
-//                    IOUtils.closeQuietly(mdDs.getBinary().getContent());
-//                }
-//                record.setMetadata(md);
-//                record.setHeader(h);
-//                records.getRecord().add(record);
-//            }
-//
-//            final RequestType req = oaiFactory.createRequestType();
-//            if (records.getRecord().size() == maxListSize) {
-//                req.setResumptionToken(encodeResumptionToken(VerbType.LIST_RECORDS.value(), metadataPrefix, from,
-//                        until, set,
-//                        offset + maxListSize));
-//            }
-//            req.setVerb(VerbType.LIST_RECORDS);
-//            req.setMetadataPrefix(metadataPrefix);
-//            oai.setRequest(req);
-//            oai.setListRecords(records);
-//            return oaiFactory.createOAIPMH(oai);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            throw new RepositoryException(e);
-//        }
-//    }
+    public JAXBElement<OAIPMHtype> listRecords(Session session, UriInfo uriInfo, String metadataPrefix, String from, String until, String set, int offset) throws RepositoryException {
+
+        final HttpResourceConverter converter =
+                new HttpResourceConverter(session,uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
+
+        if (metadataPrefix == null) {
+            return error(VerbType.LIST_RECORDS, null, null, OAIPMHerrorcodeType.BAD_ARGUMENT, "metadataprefix is invalid");
+        }
+        final MetadataFormat mdf = metadataFormats.get(metadataPrefix);
+        if (mdf == null) {
+            return error(VerbType.LIST_RECORDS, null, metadataPrefix,
+                    OAIPMHerrorcodeType.CANNOT_DISSEMINATE_FORMAT, "Unavailable metadata format");
+        }
+        DateTime fromDateTime = null;
+        DateTime untilDateTime = null;
+        try {
+            fromDateTime = (from != null && !from.isEmpty()) ? dateFormat.parseDateTime(from) : null;
+            untilDateTime = (until != null && !until.isEmpty()) ? dateFormat.parseDateTime(until) : null;
+        } catch (IllegalArgumentException e) {
+            return error(VerbType.LIST_RECORDS, null, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, e.getMessage());
+        }
+
+        final StringBuilder sparql =
+                new StringBuilder("PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> ")
+                        .append("SELECT ?sub ?obj WHERE {?sub <" + RdfLexicon.HAS_MIXIN_TYPE + "> \"fedora:object\" . ");
+
+        final List<String> filters = new ArrayList<>();
+
+        if (fromDateTime != null || untilDateTime != null) {
+            sparql.append("?sub <").append(RdfLexicon.LAST_MODIFIED_DATE).append("> ?date . ");
+            if (fromDateTime != null) {
+                filters.add("?date >='" + from + "'^^xsd:dateTime ");
+            }
+            if (untilDateTime!= null) {
+                filters.add("?date <='" + until + "'^^xsd:dateTime ");
+            }
+        }
+
+        if (set != null && !set.isEmpty()) {
+            if (!setsEnabled) {
+                return error(VerbType.LIST_RECORDS, null, metadataPrefix, OAIPMHerrorcodeType.NO_SET_HIERARCHY, "Sets are not enabled");
+            }
+            sparql.append("?sub <").append(propertyIsPartOfSet).append("> ?set . ");
+            filters.add("?set = '" + set + "'");
+        }
+
+        int filterCount = 0;
+        for (String filter:filters) {
+            if (filterCount++ == 0) {
+                sparql.append("FILTER (");
+            }
+            sparql.append(filter).append(filterCount == filters.size() ? ")" : " && ");
+        }
+        sparql.append("}")
+                .append(" OFFSET ").append(offset)
+                .append(" LIMIT ").append(maxListSize);
+        try {
+            final JQLConverter jql = new JQLConverter(session, converter, sparql.toString());
+            final ResultSet result = jql.execute();
+            final OAIPMHtype oai = oaiFactory.createOAIPMHtype();
+            final ListRecordsType records = oaiFactory.createListRecordsType();
+            if (!result.hasNext()) {
+                return error(VerbType.LIST_RECORDS, null, metadataPrefix, OAIPMHerrorcodeType.NO_RECORDS_MATCH,
+                        "No record found");
+            }
+            while (result.hasNext()) {
+                // check if the records exists
+                final RecordType record = oaiFactory.createRecordType();
+                final HeaderType h = oaiFactory.createHeaderType();
+                final QuerySolution solution = result.next();
+                final Resource subjectUri = solution.get("sub").asResource();
+                h.setIdentifier(subjectUri.getURI());
+
+                final FedoraObject obj =
+                        this.objectService.findOrCreateObject(session, converter.asString(subjectUri));
+                h.setDatestamp(dateFormat.print(obj.getLastModifiedDate().getTime()));
+                // get set names this object is part of
+
+                RdfStream triples = obj.getTriples(converter, PropertiesRdfContext.class).filter(new PropertyPredicate(propertyIsPartOfSet));
+                final List<String> setNames = new ArrayList<>();
+                while (triples.hasNext()) {
+                    setNames.add(triples.next().getObject().getLiteralValue().toString());
+                }
+                for (String name : setNames) {
+                    final FedoraObject setObject = this.objectService.findOrCreateObject(session, setsRootPath + "/" + name);
+                    final RdfStream setTriples = setObject.getTriples(converter,PropertiesRdfContext.class).filter(new PropertyPredicate(propertyHasSetSpec));
+                    h.getSetSpec().add(setTriples.next().getObject().getLiteralValue().toString());
+                }
+
+                // get the metadata record from fcrepo
+                final MetadataType md = this.oaiFactory.createMetadataType();
+                if (metadataPrefix.equals("oai_dc")) {
+                    /* generate a OAI DC reponse using the DC Generator from fcrepo4 */
+                    md.setAny(generateOaiDc(session, obj.getNode().getIdentifier(), uriInfo));
+                } else {
+                    /* generate a OAI response from the linked Binary */
+                    md.setAny(fetchOaiResponse(session, obj.getNode().getIdentifier(), mdf));
+                }
+
+                record.setMetadata(md);
+                record.setHeader(h);
+                records.getRecord().add(record);
+            }
+
+            final RequestType req = oaiFactory.createRequestType();
+            if (records.getRecord().size() == maxListSize) {
+                req.setResumptionToken(encodeResumptionToken(VerbType.LIST_RECORDS.value(), metadataPrefix, from,
+                        until, set,
+                        offset + maxListSize));
+            }
+            req.setVerb(VerbType.LIST_RECORDS);
+            req.setMetadataPrefix(metadataPrefix);
+            oai.setRequest(req);
+            oai.setListRecords(records);
+            return oaiFactory.createOAIPMH(oai);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RepositoryException(e);
+        }
+    }
 
 }
