@@ -125,15 +125,29 @@ public abstract class AbstractOAIProviderIT {
         return client.execute(method).getStatusLine().getStatusCode();
     }
 
-    protected HttpResponse createFedoraObject(final String pid) throws IOException {
-        final HttpPost httpPost = postObjMethod("/");
+    protected void createFedoraObject(final String pid, final String set) throws IOException {
+        final HttpPost post = postObjMethod("/");
         if (pid.length() > 0) {
-            httpPost.addHeader("Slug", pid);
+            post.addHeader("Slug", pid);
         }
-        final HttpResponse response = client.execute(httpPost);
+        if (set != null && !set.isEmpty()) {
+            StringBuilder sparql = new StringBuilder("INSERT {")
+                .append("<> ")
+                .append("<http://fedora.info/definitions/v4/config#isPartOfOAISet> ")
+                .append("\"").append(set).append("\" .")
+                .append("} WHERE {}");
+            post.setEntity(new StringEntity(sparql.toString()));
+            post.addHeader("Content-Type", "application/sparql-update");
+        }
+
+        final HttpResponse response = client.execute(post);
         assertEquals(CREATED.getStatusCode(), response.getStatusLine().getStatusCode());
-        httpPost.releaseConnection();
-        return response;
+        post.releaseConnection();
+
+    }
+
+    protected void createFedoraObject(final String pid) throws IOException {
+        this.createFedoraObject(pid, null);
     }
 
     public HttpResponse getOAIPMHResponse(String tokenData) throws IOException, JAXBException {

@@ -139,26 +139,24 @@ public class ListIdentifiersIT extends AbstractOAIProviderIT {
         assertEquals(1, oaipmh.getError().size());
         assertEquals(OAIPMHerrorcodeType.NO_RECORDS_MATCH, oaipmh.getError().get(0).getCode());
     }
-//
-//    @Test
-//    @SuppressWarnings("unchecked")
-//    public void testListIdentifyRecordsFromSet() throws Exception {
-//        final String setName = "oai-test-set-" + RandomStringUtils.randomAlphabetic(16);
-//        String oaiId = "oai-test-dc-" + RandomStringUtils.randomAlphabetic(16);
-//        createSet(setName, null);
-//        createFedoraObjectWithOaiRecord("oai-test-" + RandomStringUtils.randomAlphabetic(16), oaiId, setName, this
-//                .getClass().getClassLoader().getResourceAsStream("test-data/oaidc.xml"));
-//
-//        HttpResponse resp =
-//                getOAIPMHResponse(VerbType.LIST_IDENTIFIERS.value(), null, "oai_dc", null, null, setName);
-//        assertEquals(200, resp.getStatusLine().getStatusCode());
-//        OAIPMHtype oaipmh =
-//                ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
-//        assertEquals(0, oaipmh.getError().size());
-//        assertNotNull(oaipmh.getListIdentifiers());
-//        assertNotNull(oaipmh.getListIdentifiers().getHeader());
-//        assertEquals(1, oaipmh.getListIdentifiers().getHeader().size());
-//        assertEquals(1, oaipmh.getListIdentifiers().getHeader().get(0).getSetSpec().size());
-//        assertEquals(setName, oaipmh.getListIdentifiers().getHeader().get(0).getSetSpec().get(0));
-//    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testListIdentifyRecordsFromSet() throws Exception {
+        final String setName = "oai-test-set-" + RandomStringUtils.randomAlphabetic(16);
+        createSet(setName, null);
+        createFedoraObject("oai-test-" + RandomStringUtils.randomAlphabetic(16), setName);
+
+        HttpResponse resp =
+                getOAIPMHResponse(VerbType.LIST_IDENTIFIERS.value(), null, "oai_dc", null, null, setName);
+        assertEquals(200, resp.getStatusLine().getStatusCode());
+        OAIPMHtype oaipmh =
+                ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
+        assertEquals(0, oaipmh.getError().size());
+        assertNotNull(oaipmh.getListIdentifiers());
+        assertNotNull(oaipmh.getListIdentifiers().getHeader());
+        assertEquals(1, oaipmh.getListIdentifiers().getHeader().size());
+        assertEquals(1, oaipmh.getListIdentifiers().getHeader().get(0).getSetSpec().size());
+        assertEquals(setName, oaipmh.getListIdentifiers().getHeader().get(0).getSetSpec().get(0));
+    }
 }

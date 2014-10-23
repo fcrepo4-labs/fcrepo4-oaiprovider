@@ -16,25 +16,31 @@
 
 package org.fcrepo.oai.service;
 
+import com.google.common.base.Predicate;
+import com.hp.hpl.jena.graph.Node;
+import com.hp.hpl.jena.graph.Triple;
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
-import com.hp.hpl.jena.rdf.model.*;
+import com.hp.hpl.jena.rdf.model.Model;
+import com.hp.hpl.jena.rdf.model.ModelFactory;
+import com.hp.hpl.jena.rdf.model.Resource;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.fcrepo.generator.dublincore.JcrPropertiesGenerator;
-import org.fcrepo.http.api.FedoraLdp;
 import org.fcrepo.http.api.FedoraNodes;
 import org.fcrepo.http.commons.api.rdf.HttpResourceConverter;
 import org.fcrepo.http.commons.session.SessionFactory;
 import org.fcrepo.kernel.FedoraBinary;
 import org.fcrepo.kernel.FedoraObject;
 import org.fcrepo.kernel.RdfLexicon;
+import org.fcrepo.kernel.impl.rdf.impl.PropertiesRdfContext;
 import org.fcrepo.kernel.services.BinaryService;
 import org.fcrepo.kernel.services.NodeService;
 import org.fcrepo.kernel.services.ObjectService;
 import org.fcrepo.kernel.utils.iterators.RdfStream;
 import org.fcrepo.oai.MetadataFormat;
+import org.fcrepo.oai.PropertyPredicate;
 import org.fcrepo.oai.ResumptionToken;
 import org.fcrepo.transform.sparql.JQLConverter;
 import org.joda.time.DateTime;
@@ -45,10 +51,8 @@ import org.openarchives.oai._2.*;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.PostConstruct;
-import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.Value;
 import javax.ws.rs.core.UriInfo;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
@@ -385,7 +389,6 @@ public class OAIProviderService {
             }
             sparql.append(filter).append(filterCount == filters.size() ? ")" : " && ");
         }
-//        sparql.append("FILTER NOT EXISTS {?sub <" + RdfLexicon.HAS_MIXIN_TYPE + "> \"fedora:blanknode\" . }");
         sparql.append("}")
                 .append(" OFFSET ").append(offset)
                 .append(" LIMIT ").append(maxListSize);
@@ -412,23 +415,18 @@ public class OAIProviderService {
                 final FedoraObject obj =
                         this.objectService.findOrCreateObject(session, path);
                 h.setDatestamp(dateFormat.print(obj.getLastModifiedDate().getTime()));
-                // get set names this object is part of
-//                if (obj.hasProperty(propertyIsPartOfSet)) {
-//                    final Property sets = obj.getProperty(propertyIsPartOfSet);
-//                    final List<String> setNames = new ArrayList<>();
-//                    if (sets.isMultiple()) {
-//                        for (Value val : sets.getValues()) {
-//                            setNames.add(val.getString());
-//                        }
-//                    }else {
-//                        setNames.add(sets.getString());
-//                    }
-//                    for (String name : setNames) {
-//                        final FedoraObject setObject = this.objectService.findOrCreateObject(session, setsRootPath + "/" + name);
-//                        final String spec = setObject.getProperty(propertyHasSetSpec).getString();
-//                        h.getSetSpec().add(spec);
-//                    }
-//                }
+
+
+                RdfStream triples = obj.getTriples(converter, PropertiesRdfContext.class).filter(new PropertyPredicate(propertyIsPartOfSet));
+                final List<String> setNames = new ArrayList<>();
+                while (triples.hasNext()) {
+                    setNames.add(triples.next().getObject().getLiteralValue().toString());
+                }
+                for (String name : setNames) {
+                    final FedoraObject setObject = this.objectService.findOrCreateObject(session, setsRootPath + "/" + name);
+                    final RdfStream setTriples = setObject.getTriples(converter,PropertiesRdfContext.class).filter(new PropertyPredicate(propertyHasSetSpec));
+                    h.getSetSpec().add(setTriples.next().getObject().getLiteralValue().toString());
+                }
                 ids.getHeader().add(h);
             }
 
