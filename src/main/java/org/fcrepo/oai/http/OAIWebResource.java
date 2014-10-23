@@ -18,6 +18,7 @@ package org.fcrepo.oai.http;
 
 import org.fcrepo.oai.service.OAIProviderService;
 import org.openarchives.oai._2.OAIPMHerrorcodeType;
+import org.openarchives.oai._2.OAIPMHtype;
 import org.openarchives.oai._2.VerbType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
@@ -30,6 +31,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
+import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import java.io.InputStream;
 
@@ -101,20 +103,21 @@ public class OAIWebResource {
         if (verb.equals(LIST_METADATA_FORMATS.value())) {
             try {
                 verifyEmpty(from, until, set);
+                return providerService.listMetadataFormats(this.session, uriInfo, identifier);
             } catch (IllegalArgumentException e) {
                 return providerService.error(VerbType.LIST_METADATA_FORMATS, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
             }
-            return providerService.listMetadataFormats(this.session, uriInfo, identifier);
         }
 
         /* GetRecord response */
         if (verb.equals(GET_RECORD.value())) {
             try {
                 verifyEmpty(from, until, set);
+                return providerService.getRecord(this.session, uriInfo, identifier, metadataPrefix);
+
             } catch (IllegalArgumentException e) {
                 return providerService.error(VerbType.GET_RECORD, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
             }
-            return providerService.getRecord(this.session, uriInfo, identifier, metadataPrefix);
         }
         return providerService.error(null, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_VERB, "Unknown verb '" + verb + "'");
 

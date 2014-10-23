@@ -15,14 +15,20 @@
  */
 package org.fcrepo.oai.integration;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.http.HttpResponse;
+import org.apache.http.util.EntityUtils;
 import org.junit.Test;
 import org.openarchives.oai._2.OAIPMHerrorcodeType;
 import org.openarchives.oai._2.OAIPMHtype;
 import org.openarchives.oai._2.VerbType;
 
 import javax.xml.bind.JAXBElement;
+import javax.xml.transform.stream.StreamResult;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -41,27 +47,15 @@ public class GetRecordIT extends AbstractOAIProviderIT {
     }
 
     @Test
-    public void testGetNonExistingOAIDCRecord() throws Exception {
+    public void testGetOAIDCRecord() throws Exception {
         String objId = "oai-test-" + RandomStringUtils.randomAlphabetic(8);
-        createFedoraObject(objId);
-        HttpResponse resp = getOAIPMHResponse(VerbType.GET_RECORD.value(), objId, "oai_dc", null, null, null);
-        assertEquals(200, resp.getStatusLine().getStatusCode());
-        OAIPMHtype oai =
-                ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
-        assertEquals(1, oai.getError().size());
-        assertEquals(OAIPMHerrorcodeType.NO_RECORDS_MATCH, oai.getError().get(0).getCode());
-    }
-
-    @Test
-    public void testGetOAIDCDatastream() throws Exception {
-        String objId = "oai-test-" + RandomStringUtils.randomAlphabetic(8);
-        String oaiDcId = "oai-dc-" + RandomStringUtils.randomAlphabetic(8);
         createFedoraObject(objId);
         HttpResponse resp = getOAIPMHResponse(VerbType.GET_RECORD.value(), objId, "oai_dc", null, null, null);
         assertEquals(200, resp.getStatusLine().getStatusCode());
         OAIPMHtype oai =
                 ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
         assertEquals(0, oai.getError().size());
+        assertNotNull(oai.getGetRecord().getRecord().getMetadata());
         assertNotNull(oai.getGetRecord().getRecord().getMetadata().getAny());
         assertEquals(objId, oai.getGetRecord().getRecord().getHeader().getIdentifier());
     }

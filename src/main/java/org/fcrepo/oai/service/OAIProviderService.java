@@ -18,11 +18,8 @@ package org.fcrepo.oai.service;
 
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
-import com.hp.hpl.jena.rdf.model.Resource;
-import com.sun.corba.se.spi.orbutil.fsm.Input;
 import org.apache.commons.io.IOUtils;
-import org.fcrepo.generator.dublincore.DublinCoreGenerators;
-import org.fcrepo.http.commons.api.rdf.HttpResourceConverter;
+import org.fcrepo.generator.dublincore.JcrPropertiesGenerator;
 import org.fcrepo.http.commons.session.SessionFactory;
 import org.fcrepo.kernel.FedoraBinary;
 import org.fcrepo.kernel.FedoraObject;
@@ -37,10 +34,8 @@ import org.openarchives.oai._2.*;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.PostConstruct;
-import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
@@ -48,6 +43,7 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
+import javax.xml.namespace.QName;
 import javax.xml.transform.stream.StreamSource;
 import java.io.IOException;
 import java.io.InputStream;
@@ -98,7 +94,7 @@ public class OAIProviderService {
     private ObjectService objectService;
 
     @Autowired
-    private DublinCoreGenerators dcGenerators;
+    private JcrPropertiesGenerator jcrPropertiesGenerator;
 
     public void setPropertyHasSetSpec(String propertyHasSetSpec) {
         this.propertyHasSetSpec = propertyHasSetSpec;
@@ -152,8 +148,8 @@ public class OAIProviderService {
 
     public OAIProviderService() throws DatatypeConfigurationException, JAXBException {
         this.dataFactory = DatatypeFactory.newInstance();
-        this.unmarshaller =
-                JAXBContext.newInstance(OAIPMHtype.class, IdentifyType.class, SetType.class).createUnmarshaller();
+        final JAXBContext ctx = JAXBContext.newInstance(OAIPMHtype.class, IdentifyType.class, SetType.class);
+        this.unmarshaller = ctx.createUnmarshaller();
     }
 
     public JAXBElement<OAIPMHtype> identify(final Session session, UriInfo uriInfo) throws RepositoryException,
@@ -264,6 +260,7 @@ public class OAIProviderService {
         final RequestType req = oaiFactory.createRequestType();
         req.setVerb(VerbType.GET_RECORD);
         req.setValue(uriInfo.getRequestUri().toASCIIString());
+        oai.setRequest(req);
 
 
         final GetRecordType getRecord = oaiFactory.createGetRecordType();
@@ -276,20 +273,20 @@ public class OAIProviderService {
         record.setHeader(header);
 
         final MetadataType md = this.oaiFactory.createMetadataType();
-        final InputStream src = dcGenerators.get(0).getStream(obj.getNode());
+        final InputStream src = jcrPropertiesGenerator.getStream(obj.getNode());
         if (src == null) {
             return error(VerbType.GET_RECORD, identifier, "oai_dc", OAIPMHerrorcodeType.CANNOT_DISSEMINATE_FORMAT, "Error occured while trying to generate Dublin Core response");
         }
         try {
-            md.setAny(IOUtils.toString(src));
+            md.setAny(new JAXBElement<String>(new QName("oai_dc"), String.class, IOUtils.toString(src)));
         } catch (IOException e) {
             throw new RepositoryException(e);
         } finally {
             IOUtils.closeQuietly(src);
         }
         record.setMetadata(md);
-
         oai.setGetRecord(getRecord);
+
         return this.oaiFactory.createOAIPMH(oai);
     }
 
