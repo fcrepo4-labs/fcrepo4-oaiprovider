@@ -119,15 +119,17 @@ public class OAIWebResource {
                 return providerService.error(VerbType.GET_RECORD, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
             }
         }
-        return providerService.error(null, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_VERB, "Unknown verb '" + verb + "'");
 
-//        } else if (verb.equals(LIST_IDENTIFIERS.value())) {
-//            try {
-//                verifyEmpty(identifier);
-//            }catch(IllegalArgumentException e) {
-//                return providerService.error(VerbType.LIST_IDENTIFIERS, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
-//            }
-//            return providerService.listIdentifiers(this.session, uriInfo, metadataPrefix, from, until, set, offset);
+        /* list identifiers response */
+        if (verb.equals(LIST_IDENTIFIERS.value())) {
+            try {
+                verifyEmpty(identifier);
+                return providerService.listIdentifiers(this.session, uriInfo, metadataPrefix, from, until, set, offset);
+            } catch (IllegalArgumentException e) {
+                return providerService.error(VerbType.LIST_IDENTIFIERS, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
+            }
+        }
+
 //        } else if (verb.equals(LIST_SETS.value())) {
 //            try {
 //                verifyEmpty(identifier);
@@ -146,6 +148,7 @@ public class OAIWebResource {
 //            return providerService.error(null, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_VERB,
 //                    "The verb '" + verb + "' is invalid");
 //        }
+        return providerService.error(null, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_VERB, "Unknown verb '" + verb + "'");
     }
 
     private void verifyEmpty(String ... data) throws IllegalArgumentException{

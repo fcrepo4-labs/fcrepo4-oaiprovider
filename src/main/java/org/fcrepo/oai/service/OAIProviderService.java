@@ -16,17 +16,27 @@
 
 package org.fcrepo.oai.service;
 
+import com.hp.hpl.jena.query.QuerySolution;
+import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
+import com.hp.hpl.jena.rdf.model.Resource;
+import com.hp.hpl.jena.rdf.model.StmtIterator;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.fcrepo.generator.dublincore.JcrPropertiesGenerator;
+import org.fcrepo.http.commons.api.rdf.HttpResourceConverter;
 import org.fcrepo.http.commons.session.SessionFactory;
 import org.fcrepo.kernel.FedoraBinary;
 import org.fcrepo.kernel.FedoraObject;
+import org.fcrepo.kernel.RdfLexicon;
 import org.fcrepo.kernel.services.BinaryService;
 import org.fcrepo.kernel.services.NodeService;
 import org.fcrepo.kernel.services.ObjectService;
 import org.fcrepo.oai.MetadataFormat;
+import org.fcrepo.transform.sparql.JQLConverter;
+import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
@@ -34,8 +44,10 @@ import org.openarchives.oai._2.*;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.PostConstruct;
+import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.Value;
 import javax.ws.rs.core.UriInfo;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
@@ -47,6 +59,9 @@ import javax.xml.namespace.QName;
 import javax.xml.transform.stream.StreamSource;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.*;
 
 public class OAIProviderService {
@@ -316,148 +331,151 @@ public class OAIProviderService {
 //        }
 //    }
 //
-//    public JAXBElement<OAIPMHtype> listIdentifiers(Session session, UriInfo uriInfo, String metadataPrefix,
-//                                                   String from, String until, String set, int offset) throws RepositoryException {
+    public JAXBElement<OAIPMHtype> listIdentifiers(Session session, UriInfo uriInfo, String metadataPrefix,
+                                                   String from, String until, String set, int offset) throws RepositoryException {
+
+        if (metadataPrefix == null) {
+            return error(VerbType.LIST_IDENTIFIERS, null, null, OAIPMHerrorcodeType.BAD_ARGUMENT, "metadataprefix is invalid");
+        }
+
+        final MetadataFormat mdf = metadataFormats.get(metadataPrefix);
+        if (mdf == null) {
+            return error(VerbType.LIST_IDENTIFIERS, null, metadataPrefix,
+                    OAIPMHerrorcodeType.CANNOT_DISSEMINATE_FORMAT, "Unavailable metadata format");
+        }
+
+        DateTime fromDateTime = null;
+        DateTime untilDateTime = null;
+        try {
+            fromDateTime = (from != null && !from.isEmpty()) ? dateFormat.parseDateTime(from) : null;
+            untilDateTime = (until != null && !until.isEmpty()) ? dateFormat.parseDateTime(until) : null;
+        } catch (IllegalArgumentException e) {
+            return error(VerbType.LIST_IDENTIFIERS, null, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, e.getMessage());
+        }
+
+        final StringBuilder sparql =
+                new StringBuilder("PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> ")
+                        .append("SELECT ?sub WHERE {?sub <" + RdfLexicon.HAS_MIXIN_TYPE + "> \"fedora:object\" . ");
+
+        final List<String> filters = new ArrayList<>();
+
+        if (fromDateTime != null || untilDateTime != null) {
+            sparql.append("?sub <").append(RdfLexicon.LAST_MODIFIED_DATE).append("> ?date . ");
+            if (fromDateTime != null) {
+                filters.add("?date >='" + from + "'^^xsd:dateTime ");
+            }
+            if (untilDateTime!= null) {
+                filters.add("?date <='" + until + "'^^xsd:dateTime ");
+            }
+        }
+
+        if (set != null && !set.isEmpty()) {
+            if (!setsEnabled) {
+                return error(VerbType.LIST_IDENTIFIERS, null, metadataPrefix, OAIPMHerrorcodeType.NO_SET_HIERARCHY, "Sets are not enabled");
+            }
+            sparql.append("?sub <").append(propertyIsPartOfSet).append("> ?set . ");
+            filters.add("?set = '" + set + "'");
+        }
+
+        int filterCount = 0;
+        for (String filter:filters) {
+            if (filterCount++ == 0) {
+                sparql.append("FILTER (");
+            }
+            sparql.append(filter).append(filterCount == filters.size() ? ")" : " && ");
+        }
+        sparql.append("}")
+                .append(" OFFSET ").append(offset)
+                .append(" LIMIT ").append(maxListSize);
+
+        final HttpResourceConverter converter = new HttpResourceConverter(session, uriInfo.getBaseUriBuilder());
+
+        try {
+            System.out.println(sparql.toString());
+            final JQLConverter jql = new JQLConverter(session, converter, sparql.toString());
+            final ResultSet result = jql.execute();
+            final OAIPMHtype oai = oaiFactory.createOAIPMHtype();
+            final ListIdentifiersType ids = oaiFactory.createListIdentifiersType();
+            if (!result.hasNext()) {
+                return error(VerbType.LIST_IDENTIFIERS, null, metadataPrefix, OAIPMHerrorcodeType.NO_RECORDS_MATCH,
+                        "No record found");
+            }
+            while (result.hasNext()) {
+                final HeaderType h = oaiFactory.createHeaderType();
+                final QuerySolution sol = result.next();
+                final Resource sub = sol.get("sub").asResource();
+                final String path = converter.convert(sub).getPath();
+
+                h.setIdentifier(sub.getURI());
+                final FedoraObject obj =
+                        this.objectService.findOrCreateObject(session, path);
+                h.setDatestamp(dateFormat.print(obj.getLastModifiedDate().getTime()));
+                // get set names this object is part of
+                if (obj.hasProperty(propertyIsPartOfSet)) {
+                    final Property sets = obj.getProperty(propertyIsPartOfSet);
+                    final List<String> setNames = new ArrayList<>();
+                    if (sets.isMultiple()) {
+                        for (Value val : sets.getValues()) {
+                            setNames.add(val.getString());
+                        }
+                    }else {
+                        setNames.add(sets.getString());
+                    }
+                    for (String name : setNames) {
+                        final FedoraObject setObject = this.objectService.findOrCreateObject(session, setsRootPath + "/" + name);
+                        final String spec = setObject.getProperty(propertyHasSetSpec).getString();
+                        h.getSetSpec().add(spec);
+                    }
+                }
+                ids.getHeader().add(h);
+            }
+
+            final RequestType req = oaiFactory.createRequestType();
+            if (ids.getHeader().size() == maxListSize) {
+                req.setResumptionToken(encodeResumptionToken(VerbType.LIST_IDENTIFIERS.value(), metadataPrefix, from,
+                        until, set,
+                        offset + maxListSize));
+            }
+            req.setVerb(VerbType.LIST_IDENTIFIERS);
+            req.setMetadataPrefix(metadataPrefix);
+            oai.setRequest(req);
+            oai.setListIdentifiers(ids);
+            return oaiFactory.createOAIPMH(oai);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RepositoryException(e);
+        }
+    }
 //
-//        final HttpIdentifierTranslator translator =
-//                new HttpIdentifierTranslator(session, FedoraNodes.class, uriInfo);
-//        if (metadataPrefix == null) {
-//            return error(VerbType.LIST_IDENTIFIERS, null, null, OAIPMHerrorcodeType.BAD_ARGUMENT, "metadataprefix is invalid");
-//        }
-//        final MetadataFormat mdf = metadataFormats.get(metadataPrefix);
-//        if (mdf == null) {
-//            return error(VerbType.LIST_IDENTIFIERS, null, metadataPrefix,
-//                    OAIPMHerrorcodeType.CANNOT_DISSEMINATE_FORMAT, "Unavailable metadata format");
-//        }
-//        DateTime fromDateTime = null;
-//        DateTime untilDateTime = null;
-//        try {
-//            fromDateTime = (from != null && !from.isEmpty()) ? dateFormat.parseDateTime(from) : null;
-//            untilDateTime = (until != null && !until.isEmpty()) ? dateFormat.parseDateTime(until) : null;
-//        } catch (IllegalArgumentException e) {
-//            return error(VerbType.LIST_IDENTIFIERS, null, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, e.getMessage());
-//        }
-//
-//        final StringBuilder sparql =
-//                new StringBuilder("PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> ")
-//                        .append("SELECT ?sub ?obj WHERE { ")
-//                        .append("?sub <").append(mdf.getPropertyName()).append("> ?obj . ");
-//
-//        final List<String> filters = new ArrayList<>();
-//
-//        if (fromDateTime != null || untilDateTime != null) {
-//            sparql.append("?sub <").append(RdfLexicon.LAST_MODIFIED_DATE).append("> ?date . ");
-//            if (fromDateTime != null) {
-//                filters.add("?date >='" + from + "'^^xsd:dateTime ");
-//            }
-//            if (untilDateTime!= null) {
-//                filters.add("?date <='" + until + "'^^xsd:dateTime ");
-//            }
-//        }
-//
-//        if (set != null && !set.isEmpty()) {
-//            if (!setsEnabled) {
-//                return error(VerbType.LIST_IDENTIFIERS, null, metadataPrefix, OAIPMHerrorcodeType.NO_SET_HIERARCHY, "Sets are not enabled");
-//            }
-//            sparql.append("?sub <").append(propertyIsPartOfSet).append("> ?set . ");
-//            filters.add("?set = '" + set + "'");
-//        }
-//
-//        int filterCount = 0;
-//        for (String filter:filters) {
-//            if (filterCount++ == 0) {
-//                sparql.append("FILTER (");
-//            }
-//            sparql.append(filter).append(filterCount == filters.size() ? ")" : " && ");
-//        }
-//        sparql.append("}")
-//                .append(" OFFSET ").append(offset)
-//                .append(" LIMIT ").append(maxListSize);
-//        try {
-//            final JQLConverter jql = new JQLConverter(session, translator, sparql.toString());
-//            final ResultSet result = jql.execute();
-//            final OAIPMHtype oai = oaiFactory.createOAIPMHtype();
-//            final ListIdentifiersType ids = oaiFactory.createListIdentifiersType();
-//            if (!result.hasNext()) {
-//                return error(VerbType.LIST_IDENTIFIERS, null, metadataPrefix, OAIPMHerrorcodeType.NO_RECORDS_MATCH,
-//                        "No record found");
-//            }
-//            while (result.hasNext()) {
-//                final HeaderType h = oaiFactory.createHeaderType();
-//                final QuerySolution sol = result.next();
-//                final Resource sub = sol.get("sub").asResource();
-//                final Resource oaiRecordUri = sol.get("obj").asResource();
-//                if (!this.nodeService.exists(session, translator.getPathFromSubject(oaiRecordUri))) {
-//                    continue;
-//                }
-//                h.setIdentifier(sub.getURI());
-//                final FedoraObject obj =
-//                        this.objectService.findOrCreateObject(session, translator.getPathFromSubject(sub));
-//                h.setDatestamp(dateFormat.print(obj.getLastModifiedDate().getTime()));
-//                // get set names this object is part of
-//                final Model objModel = obj.getPropertiesDataset(translator).getDefaultModel();
-//                final StmtIterator setNames = objModel.listStatements(translator.getSubject(obj.getPath()), objModel.createProperty(propertyIsPartOfSet), (RDFNode) null);
-//                while (setNames.hasNext()) {
-//                    String setName = setNames.next().getObject().asLiteral().getString();
-//                    if (!this.nodeService.exists(session, setsRootPath + "/" + setName)) {
-//                        return error(VerbType.LIST_IDENTIFIERS, null, metadataPrefix, OAIPMHerrorcodeType.ID_DOES_NOT_EXIST, "The Set object does not exist");
-//                    }
-//                    final FedoraObject setObject = this.objectService.findOrCreateObject(session, setsRootPath + "/" + setName);
-//                    final Model setObjectModel = setObject.getPropertiesDataset(translator).getDefaultModel();
-//                    final StmtIterator setSpec = setObjectModel.listStatements(translator.getSubject(setObject.getPath()), objModel.createProperty(propertyHasSetSpec), (RDFNode) null);
-//                    if (setSpec.hasNext()) {
-//                        h.getSetSpec().add(setSpec.next().getObject().asLiteral().getString());
-//                    }
-//                }
-//                ids.getHeader().add(h);
-//            }
-//
-//            final RequestType req = oaiFactory.createRequestType();
-//            if (ids.getHeader().size() == maxListSize) {
-//                req.setResumptionToken(encodeResumptionToken(VerbType.LIST_IDENTIFIERS.value(), metadataPrefix, from,
-//                        until, set,
-//                        offset + maxListSize));
-//            }
-//            req.setVerb(VerbType.LIST_IDENTIFIERS);
-//            req.setMetadataPrefix(metadataPrefix);
-//            oai.setRequest(req);
-//            oai.setListIdentifiers(ids);
-//            return oaiFactory.createOAIPMH(oai);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            throw new RepositoryException(e);
-//        }
-//    }
-//
-//    public static String encodeResumptionToken(String verb, String metadataPrefix, String from, String until,
-//                                               String set, int offset) throws UnsupportedEncodingException {
-//        if (from == null) {
-//            from = "";
-//        }
-//        if (until == null) {
-//            until = "";
-//        }
-//        if (set == null) {
-//            set = "";
-//        }
-//        String[] data = new String[] {
-//                urlEncode(verb),
-//                urlEncode(metadataPrefix),
-//                urlEncode(from),
-//                urlEncode(until),
-//                urlEncode(set),
-//                urlEncode(String.valueOf(offset))
-//        };
-//        return Base64.getEncoder().encodeToString(StringUtils.join(data, ':').getBytes("UTF-8"));
-//    }
-//
-//    public static String urlEncode(String value) throws UnsupportedEncodingException {
-//        return URLEncoder.encode(value, "UTF-8");
-//    }
-//
-//    public static String urlDecode(String value) throws UnsupportedEncodingException {
-//        return URLDecoder.decode(value, "UTF-8");
-//    }
+    public static String encodeResumptionToken(String verb, String metadataPrefix, String from, String until,
+                                               String set, int offset) throws UnsupportedEncodingException {
+        if (from == null) {
+            from = "";
+        }
+        if (until == null) {
+            until = "";
+        }
+        if (set == null) {
+            set = "";
+        }
+        String[] data = new String[] {
+                urlEncode(verb),
+                urlEncode(metadataPrefix),
+                urlEncode(from),
+                urlEncode(until),
+                urlEncode(set),
+                urlEncode(String.valueOf(offset))
+        };
+        return Base64.encodeBase64URLSafeString(StringUtils.join(data, ':').getBytes("UTF-8"));
+    }
+
+    public static String urlEncode(String value) throws UnsupportedEncodingException {
+        return URLEncoder.encode(value, "UTF-8");
+    }
+
+    public static String urlDecode(String value) throws UnsupportedEncodingException {
+        return URLDecoder.decode(value, "UTF-8");
+    }
 //
 //    public static ResumptionToken decodeResumptionToken(String token) throws UnsupportedEncodingException {
 //        String[] data = StringUtils.splitPreserveAllTokens(new String(Base64.getDecoder().decode(token)), ':');
