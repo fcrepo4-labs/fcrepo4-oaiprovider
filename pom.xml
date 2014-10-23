@@ -58,6 +58,7 @@
             <artifactId>spring-context</artifactId>
         </dependency>
 
+
         <!-- test gear -->
         <dependency>
             <groupId>org.fcrepo</groupId>
