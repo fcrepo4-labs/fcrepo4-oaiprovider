@@ -132,6 +132,7 @@ public abstract class AbstractOAIProviderIT {
         }
         final HttpResponse response = client.execute(httpPost);
         assertEquals(CREATED.getStatusCode(), response.getStatusLine().getStatusCode());
+        httpPost.releaseConnection();
         return response;
     }
 

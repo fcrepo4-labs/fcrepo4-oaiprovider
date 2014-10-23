@@ -16,6 +16,7 @@
 
 package org.fcrepo.oai.http;
 
+import org.fcrepo.oai.ResumptionToken;
 import org.fcrepo.oai.service.OAIProviderService;
 import org.openarchives.oai._2.OAIPMHerrorcodeType;
 import org.openarchives.oai._2.OAIPMHtype;
@@ -68,20 +69,20 @@ public class OAIWebResource {
         int offset = 0;
 
 
-//        /* If there's a resumption token present the data provided in the base64 encoded token is used to generate the request */
-//        if (resumptionToken != null && !resumptionToken.isEmpty()) {
-//            try {
-//                final ResumptionToken token = OAIProviderService.decodeResumptionToken(resumptionToken);
-//                verb = token.getVerb();
-//                from = token.getFrom();
-//                until = token.getUntil();
-//                set = token.getSet();
-//                metadataPrefix = token.getMetadataPrefix();
-//                offset = token.getOffset();
-//            } catch (Exception e) {
-//                return providerService.error(null, null, null, OAIPMHerrorcodeType.BAD_RESUMPTION_TOKEN, "Resumption token is invalid");
-//            }
-//        }
+        /* If there's a resumption token present the data provided in the base64 encoded token is used to generate the request */
+        if (resumptionToken != null && !resumptionToken.isEmpty()) {
+            try {
+                final ResumptionToken token = OAIProviderService.decodeResumptionToken(resumptionToken);
+                verb = token.getVerb();
+                from = token.getFrom();
+                until = token.getUntil();
+                set = token.getSet();
+                metadataPrefix = token.getMetadataPrefix();
+                offset = token.getOffset();
+            } catch (Exception e) {
+                return providerService.error(null, null, null, OAIPMHerrorcodeType.BAD_RESUMPTION_TOKEN, "Resumption token is invalid");
+            }
+        }
 
         /* decide what to do depending on the verb passed */
         if (verb == null) {

@@ -18,14 +18,13 @@ package org.fcrepo.oai.service;
 
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
-import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.ModelFactory;
-import com.hp.hpl.jena.rdf.model.Resource;
-import com.hp.hpl.jena.rdf.model.StmtIterator;
+import com.hp.hpl.jena.rdf.model.*;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.fcrepo.generator.dublincore.JcrPropertiesGenerator;
+import org.fcrepo.http.api.FedoraLdp;
+import org.fcrepo.http.api.FedoraNodes;
 import org.fcrepo.http.commons.api.rdf.HttpResourceConverter;
 import org.fcrepo.http.commons.session.SessionFactory;
 import org.fcrepo.kernel.FedoraBinary;
@@ -35,6 +34,7 @@ import org.fcrepo.kernel.services.BinaryService;
 import org.fcrepo.kernel.services.NodeService;
 import org.fcrepo.kernel.services.ObjectService;
 import org.fcrepo.oai.MetadataFormat;
+import org.fcrepo.oai.ResumptionToken;
 import org.fcrepo.transform.sparql.JQLConverter;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -355,7 +355,7 @@ public class OAIProviderService {
 
         final StringBuilder sparql =
                 new StringBuilder("PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> ")
-                        .append("SELECT ?sub WHERE {?sub <" + RdfLexicon.HAS_MIXIN_TYPE + "> \"fedora:object\" . ");
+                        .append("SELECT ?sub ?pred ?obj WHERE {?sub <" + RdfLexicon.HAS_MIXIN_TYPE + "> \"fedora:object\" . ");
 
         final List<String> filters = new ArrayList<>();
 
@@ -384,14 +384,15 @@ public class OAIProviderService {
             }
             sparql.append(filter).append(filterCount == filters.size() ? ")" : " && ");
         }
+//        sparql.append("FILTER NOT EXISTS {?sub <" + RdfLexicon.HAS_MIXIN_TYPE + "> \"fedora:blanknode\" . }");
         sparql.append("}")
                 .append(" OFFSET ").append(offset)
                 .append(" LIMIT ").append(maxListSize);
 
-        final HttpResourceConverter converter = new HttpResourceConverter(session, uriInfo.getBaseUriBuilder());
+        final HttpResourceConverter converter = new HttpResourceConverter(session,
+                uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
 
         try {
-            System.out.println(sparql.toString());
             final JQLConverter jql = new JQLConverter(session, converter, sparql.toString());
             final ResultSet result = jql.execute();
             final OAIPMHtype oai = oaiFactory.createOAIPMHtype();
@@ -411,22 +412,22 @@ public class OAIProviderService {
                         this.objectService.findOrCreateObject(session, path);
                 h.setDatestamp(dateFormat.print(obj.getLastModifiedDate().getTime()));
                 // get set names this object is part of
-                if (obj.hasProperty(propertyIsPartOfSet)) {
-                    final Property sets = obj.getProperty(propertyIsPartOfSet);
-                    final List<String> setNames = new ArrayList<>();
-                    if (sets.isMultiple()) {
-                        for (Value val : sets.getValues()) {
-                            setNames.add(val.getString());
-                        }
-                    }else {
-                        setNames.add(sets.getString());
-                    }
-                    for (String name : setNames) {
-                        final FedoraObject setObject = this.objectService.findOrCreateObject(session, setsRootPath + "/" + name);
-                        final String spec = setObject.getProperty(propertyHasSetSpec).getString();
-                        h.getSetSpec().add(spec);
-                    }
-                }
+//                if (obj.hasProperty(propertyIsPartOfSet)) {
+//                    final Property sets = obj.getProperty(propertyIsPartOfSet);
+//                    final List<String> setNames = new ArrayList<>();
+//                    if (sets.isMultiple()) {
+//                        for (Value val : sets.getValues()) {
+//                            setNames.add(val.getString());
+//                        }
+//                    }else {
+//                        setNames.add(sets.getString());
+//                    }
+//                    for (String name : setNames) {
+//                        final FedoraObject setObject = this.objectService.findOrCreateObject(session, setsRootPath + "/" + name);
+//                        final String spec = setObject.getProperty(propertyHasSetSpec).getString();
+//                        h.getSetSpec().add(spec);
+//                    }
+//                }
                 ids.getHeader().add(h);
             }
 
@@ -476,18 +477,18 @@ public class OAIProviderService {
     public static String urlDecode(String value) throws UnsupportedEncodingException {
         return URLDecoder.decode(value, "UTF-8");
     }
-//
-//    public static ResumptionToken decodeResumptionToken(String token) throws UnsupportedEncodingException {
-//        String[] data = StringUtils.splitPreserveAllTokens(new String(Base64.getDecoder().decode(token)), ':');
-//        final String verb = urlDecode(data[0]);
-//        final String metadataPrefix = urlDecode(data[1]);
-//        final String from = urlDecode(data[2]);
-//        final String until = urlDecode(data[3]);
-//        final String set = urlDecode(data[4]);
-//        final int offset = Integer.parseInt(urlDecode(data[5]));
-//        return new ResumptionToken(verb, metadataPrefix, from, until, offset, set);
-//    }
-//
+
+    public static ResumptionToken decodeResumptionToken(String token) throws UnsupportedEncodingException {
+        String[] data = StringUtils.splitPreserveAllTokens(new String(Base64.decodeBase64(token)), ':');
+        final String verb = urlDecode(data[0]);
+        final String metadataPrefix = urlDecode(data[1]);
+        final String from = urlDecode(data[2]);
+        final String until = urlDecode(data[3]);
+        final String set = urlDecode(data[4]);
+        final int offset = Integer.parseInt(urlDecode(data[5]));
+        return new ResumptionToken(verb, metadataPrefix, from, until, offset, set);
+    }
+
 //    public JAXBElement<OAIPMHtype> listSets(Session session, UriInfo uriInfo, int offset) throws RepositoryException {
 //        final HttpIdentifierTranslator translator =
 //                new HttpIdentifierTranslator(session, FedoraNodes.class, uriInfo);

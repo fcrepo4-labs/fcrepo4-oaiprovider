@@ -74,77 +74,71 @@ public class ListIdentifiersIT extends AbstractOAIProviderIT {
         assertTrue(oaipmh.getListIdentifiers().getHeader().size() > 0);
     }
 
-//    @Test
-//    @SuppressWarnings("unchecked")
-//    public void testListIdentifyRecordsResumption() throws Exception {
-//        for (int i = 0; i < 6; i++) {
-//            String oaiId = "oai-test-dc-" + RandomStringUtils.randomAlphabetic(16);
-//            createFedoraObjectWithOaiRecord("oai-test-" + RandomStringUtils.randomAlphabetic(16), oaiId, null, this
-//                    .getClass().getClassLoader().getResourceAsStream("test-data/oaidc.xml"));
-//        }
-//
-//        HttpResponse resp = getOAIPMHResponse(VerbType.LIST_IDENTIFIERS.value(), null, "oai_dc", null, null, null);
-//        assertEquals(200, resp.getStatusLine().getStatusCode());
-//        OAIPMHtype oaipmh =
-//                ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
-//        assertEquals(0, oaipmh.getError().size());
-//        assertNotNull(oaipmh.getListIdentifiers());
-//        assertNotNull(oaipmh.getListIdentifiers().getHeader());
-//        assertEquals(VerbType.LIST_IDENTIFIERS.value(), oaipmh.getRequest().getVerb().value());
-//        assertEquals(0, oaipmh.getError().size());
-//        assertTrue(oaipmh.getListIdentifiers().getHeader().size() > 0);
-//        assertNotNull(oaipmh.getRequest().getResumptionToken());
-//
-//        /* resume using the token data provided */
-//        resp = getOAIPMHResponse(oaipmh.getRequest().getResumptionToken());
-//        assertEquals(200, resp.getStatusLine().getStatusCode());
-//        oaipmh =
-//                ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
-//        assertEquals(0, oaipmh.getError().size());
-//        assertNotNull(oaipmh.getListIdentifiers());
-//        assertNotNull(oaipmh.getListIdentifiers().getHeader());
-//        assertEquals(VerbType.LIST_IDENTIFIERS.value(), oaipmh.getRequest().getVerb().value());
-//        assertEquals(0, oaipmh.getError().size());
-//        assertTrue(oaipmh.getListIdentifiers().getHeader().size() > 0);
-//    }
-//
-//    @Test
-//    @SuppressWarnings("unchecked")
-//    public void testListIdentifyRecordsFrom() throws Exception {
-//        String oaiId = "oai-test-dc-" + RandomStringUtils.randomAlphabetic(16);
-//        createFedoraObjectWithOaiRecord("oai-test-" + RandomStringUtils.randomAlphabetic(16), oaiId, null, this
-//                .getClass().getClassLoader().getResourceAsStream("test-data/oaidc.xml"));
-//
-//        HttpResponse resp =
-//                getOAIPMHResponse(VerbType.LIST_IDENTIFIERS.value(), null, "oai_dc", "2012-12-13T01:00:00Z", null,
-//                        null);
-//        assertEquals(200, resp.getStatusLine().getStatusCode());
-//        OAIPMHtype oaipmh =
-//                ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
-//        assertEquals(0, oaipmh.getError().size());
-//        assertNotNull(oaipmh.getListIdentifiers());
-//        assertNotNull(oaipmh.getListIdentifiers().getHeader());
-//        assertEquals(VerbType.LIST_IDENTIFIERS.value(), oaipmh.getRequest().getVerb().value());
-//        assertEquals(0, oaipmh.getError().size());
-//        assertTrue(oaipmh.getListIdentifiers().getHeader().size() > 0);
-//    }
-//
-//    @Test
-//    @SuppressWarnings("unchecked")
-//    public void testListIdentifyRecordsUntilNoRecords() throws Exception {
-//        String oaiId = "oai-test-dc-" + RandomStringUtils.randomAlphabetic(16);
-//        createFedoraObjectWithOaiRecord("oai-test-" + RandomStringUtils.randomAlphabetic(16), oaiId, null, this
-//                .getClass().getClassLoader().getResourceAsStream("test-data/oaidc.xml"));
-//
-//        HttpResponse resp =
-//                getOAIPMHResponse(VerbType.LIST_IDENTIFIERS.value(), null, "oai_dc", null, "2012-12-13T01:00:00Z",
-//                        null);
-//        assertEquals(200, resp.getStatusLine().getStatusCode());
-//        OAIPMHtype oaipmh =
-//                ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
-//        assertEquals(1, oaipmh.getError().size());
-//        assertEquals(OAIPMHerrorcodeType.NO_RECORDS_MATCH, oaipmh.getError().get(0).getCode());
-//    }
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testListIdentifyRecordsResumption() throws Exception {
+        for (int i = 0; i < 6; i++) {
+            createFedoraObject("oai-test-" + RandomStringUtils.randomAlphabetic(16));
+        }
+
+        HttpResponse resp = getOAIPMHResponse(VerbType.LIST_IDENTIFIERS.value(), null, "oai_dc", null, null, null);
+        assertEquals(200, resp.getStatusLine().getStatusCode());
+        OAIPMHtype oaipmh =
+                ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
+        assertEquals(0, oaipmh.getError().size());
+        assertNotNull(oaipmh.getListIdentifiers());
+        assertNotNull(oaipmh.getListIdentifiers().getHeader());
+        assertEquals(VerbType.LIST_IDENTIFIERS.value(), oaipmh.getRequest().getVerb().value());
+        assertEquals(0, oaipmh.getError().size());
+        assertTrue(oaipmh.getListIdentifiers().getHeader().size() > 0);
+        assertNotNull(oaipmh.getRequest().getResumptionToken());
+
+        /* resume using the token data provided */
+        resp = getOAIPMHResponse(oaipmh.getRequest().getResumptionToken());
+        assertEquals(200, resp.getStatusLine().getStatusCode());
+        oaipmh =
+                ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
+        assertEquals(0, oaipmh.getError().size());
+        assertNotNull(oaipmh.getListIdentifiers());
+        assertNotNull(oaipmh.getListIdentifiers().getHeader());
+        assertEquals(VerbType.LIST_IDENTIFIERS.value(), oaipmh.getRequest().getVerb().value());
+        assertEquals(0, oaipmh.getError().size());
+        assertTrue(oaipmh.getListIdentifiers().getHeader().size() > 0);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testListIdentifyRecordsFrom() throws Exception {
+        createFedoraObject("oai-test-" + RandomStringUtils.randomAlphabetic(16));
+
+        HttpResponse resp =
+                getOAIPMHResponse(VerbType.LIST_IDENTIFIERS.value(), null, "oai_dc", "2012-12-13T01:00:00Z", null,
+                        null);
+        assertEquals(200, resp.getStatusLine().getStatusCode());
+        OAIPMHtype oaipmh =
+                ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
+        assertEquals(0, oaipmh.getError().size());
+        assertNotNull(oaipmh.getListIdentifiers());
+        assertNotNull(oaipmh.getListIdentifiers().getHeader());
+        assertEquals(VerbType.LIST_IDENTIFIERS.value(), oaipmh.getRequest().getVerb().value());
+        assertEquals(0, oaipmh.getError().size());
+        assertTrue(oaipmh.getListIdentifiers().getHeader().size() > 0);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testListIdentifyRecordsUntilNoRecords() throws Exception {
+        createFedoraObject("oai-test-" + RandomStringUtils.randomAlphabetic(16));
+
+        HttpResponse resp =
+                getOAIPMHResponse(VerbType.LIST_IDENTIFIERS.value(), null, "oai_dc", null, "2012-12-13T01:00:00Z",
+                        null);
+        assertEquals(200, resp.getStatusLine().getStatusCode());
+        OAIPMHtype oaipmh =
+                ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
+        assertEquals(1, oaipmh.getError().size());
+        assertEquals(OAIPMHerrorcodeType.NO_RECORDS_MATCH, oaipmh.getError().get(0).getCode());
+    }
 //
 //    @Test
 //    @SuppressWarnings("unchecked")
