@@ -13,53 +13,84 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.fcrepo.oai;
 
 import org.openarchives.oai._2.MetadataFormatType;
 import org.openarchives.oai._2.ObjectFactory;
 
+/**
+ * Metadata form Representation for OAI Provider
+ *
+ * @author Frank Asseg
+ */
 public class MetadataFormat {
 
-    private String prefix;
+    private final String prefix;
 
-    private String schemaUrl;
+    private final String schemaUrl;
 
-    private String namespace;
+    private final String namespace;
 
-    private String propertyName;
+    private final String propertyName;
 
+    /**
+     * Instantiates a new Metadata format.
+     *
+     * @param prefix the prefix
+     * @param schemaUrl the schema url
+     * @param namespace the namespace
+     * @param propertyName the property name
+     */
+    public MetadataFormat(final String prefix, final String schemaUrl, final String namespace,
+            final String propertyName) {
+        this.prefix = prefix;
+        this.schemaUrl = schemaUrl;
+        this.namespace = namespace;
+        this.propertyName = propertyName;
+    }
+
+    /**
+     * Get the property name used for the metadata format
+     *
+     * @return the property name
+     */
     public String getPropertyName() {
         return propertyName;
     }
 
-    public void setPropertyName(String propertyName) {
-        this.propertyName = propertyName;
-    }
-
-    public void setPrefix(String prefix) {
-        this.prefix = prefix;
-    }
-
-    public void setSchemaUrl(String schemaUrl) {
-        this.schemaUrl = schemaUrl;
-    }
-
-    public void setNamespace(String namespace) {
-        this.namespace = namespace;
-    }
-
+    /**
+     * Get the prefix for this metadata format used in oai representations
+     *
+     * @return the prefix
+     */
     public String getPrefix() {
         return prefix;
     }
 
+    /**
+     * Get this metadata format's XML schema url
+     *
+     * @return the URL of the XSD
+     */
     public String getSchemaUrl() {
         return schemaUrl;
     }
 
+    /**
+     * get the namespace for this metadata format
+     *
+     * @return the namespace
+     */
     public String getNamespace() {
         return namespace;
     }
 
+    /**
+     * Get the metadata format as a OAI schema compliant type used by JAX-B for serialization
+     *
+     * @return the OAI metadata format type
+     */
     public MetadataFormatType asMetadataFormatType() {
         final ObjectFactory objectFactory = new ObjectFactory();
         final MetadataFormatType type = objectFactory.createMetadataFormatType();

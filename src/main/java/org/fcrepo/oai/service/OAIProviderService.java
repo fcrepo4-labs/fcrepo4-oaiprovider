@@ -13,13 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.fcrepo.oai.service;
 
-import com.hp.hpl.jena.query.QuerySolution;
-import com.hp.hpl.jena.query.ResultSet;
-import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.ModelFactory;
-import com.hp.hpl.jena.rdf.model.Resource;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.util.*;
+
+import javax.annotation.PostConstruct;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.ws.rs.core.UriInfo;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
+import javax.xml.namespace.QName;
+import javax.xml.transform.stream.StreamSource;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -46,25 +62,17 @@ import org.joda.time.format.ISODateTimeFormat;
 import org.openarchives.oai._2.*;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import javax.annotation.PostConstruct;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.ws.rs.core.UriInfo;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.datatype.DatatypeConfigurationException;
-import javax.xml.datatype.DatatypeFactory;
-import javax.xml.namespace.QName;
-import javax.xml.transform.stream.StreamSource;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
-import java.util.*;
+import com.hp.hpl.jena.query.QuerySolution;
+import com.hp.hpl.jena.query.ResultSet;
+import com.hp.hpl.jena.rdf.model.Model;
+import com.hp.hpl.jena.rdf.model.ModelFactory;
+import com.hp.hpl.jena.rdf.model.Resource;
 
+/**
+ * The type OAI provider service.
+ *
+ * @author Frank Asseg
+ */
 public class OAIProviderService {
 
     private static final ObjectFactory oaiFactory = new ObjectFactory();
@@ -112,46 +120,101 @@ public class OAIProviderService {
     @Autowired
     private JcrPropertiesGenerator jcrPropertiesGenerator;
 
+    /**
+     * Sets property has set spec.
+     *
+     * @param propertyHasSetSpec the property has set spec
+     */
     public void setPropertyHasSetSpec(String propertyHasSetSpec) {
         this.propertyHasSetSpec = propertyHasSetSpec;
     }
 
+    /**
+     * Sets property set name.
+     *
+     * @param propertySetName the property set name
+     */
     public void setPropertySetName(String propertySetName) {
         this.propertySetName = propertySetName;
     }
 
+    /**
+     * Sets property has sets.
+     *
+     * @param propertyHasSets the property has sets
+     */
     public void setPropertyHasSets(String propertyHasSets) {
         this.propertyHasSets = propertyHasSets;
     }
 
+    /**
+     * Sets max list size.
+     *
+     * @param maxListSize the max list size
+     */
     public void setMaxListSize(int maxListSize) {
         this.maxListSize = maxListSize;
     }
 
+    /**
+     * Sets property is part of set.
+     *
+     * @param propertyIsPartOfSet the property is part of set
+     */
     public void setPropertyIsPartOfSet(String propertyIsPartOfSet) {
         this.propertyIsPartOfSet = propertyIsPartOfSet;
     }
 
+    /**
+     * Sets sets root path.
+     *
+     * @param setsRootPath the sets root path
+     */
     public void setSetsRootPath(String setsRootPath) {
         this.setsRootPath = setsRootPath;
     }
 
+    /**
+     * Sets sets enabled.
+     *
+     * @param setsEnabled the sets enabled
+     */
     public void setSetsEnabled(boolean setsEnabled) {
         this.setsEnabled = setsEnabled;
     }
 
+    /**
+     * Sets identify path.
+     *
+     * @param identifyPath the identify path
+     */
     public void setIdentifyPath(String identifyPath) {
         this.identifyPath = identifyPath;
     }
 
+    /**
+     * Sets auto generate oai dc.
+     *
+     * @param autoGenerateOaiDc the auto generate oai dc
+     */
     public void setAutoGenerateOaiDc(boolean autoGenerateOaiDc) {
         this.autoGenerateOaiDc = autoGenerateOaiDc;
     }
 
+    /**
+     * Sets metadata formats.
+     *
+     * @param metadataFormats the metadata formats
+     */
     public void setMetadataFormats(Map<String, MetadataFormat> metadataFormats) {
         this.metadataFormats = metadataFormats;
     }
 
+    /**
+     * Service intitialization
+     *
+     * @throws RepositoryException the repository exception
+     */
     @PostConstruct
     public void init() throws RepositoryException {
         /* check if set root node exists */
@@ -162,16 +225,32 @@ public class OAIProviderService {
         session.save();
     }
 
+    /**
+     * Instantiates a new OAI provider service.
+     *
+     * @throws DatatypeConfigurationException the datatype configuration exception
+     * @throws JAXBException the jAXB exception
+     */
     public OAIProviderService() throws DatatypeConfigurationException, JAXBException {
         this.dataFactory = DatatypeFactory.newInstance();
         final JAXBContext ctx = JAXBContext.newInstance(OAIPMHtype.class, IdentifyType.class, SetType.class);
         this.unmarshaller = ctx.createUnmarshaller();
     }
 
+    /**
+     * Identify jAXB element.
+     *
+     * @param session the session
+     * @param uriInfo the uri info
+     * @return the jAXB element
+     * @throws RepositoryException the repository exception
+     * @throws JAXBException the jAXB exception
+     */
     public JAXBElement<OAIPMHtype> identify(final Session session, UriInfo uriInfo) throws RepositoryException,
             JAXBException {
         if (!this.nodeService.exists(session, identifyPath)) {
-            return error(VerbType.IDENTIFY, null, null, OAIPMHerrorcodeType.BAD_ARGUMENT, "Identify response does not exists");
+            return error(VerbType.IDENTIFY, null, null, OAIPMHerrorcodeType.BAD_ARGUMENT,
+                    "Identify response does not exists");
         }
         final FedoraBinary binary = this.binaryService.findOrCreateBinary(session, identifyPath);
         final InputStream data = binary.getContent();
@@ -188,8 +267,17 @@ public class OAIProviderService {
         return oaiFactory.createOAIPMH(oai);
     }
 
+    /**
+     * List metadata formats.
+     *
+     * @param session the session
+     * @param uriInfo the uri info
+     * @param identifier the identifier
+     * @return the jAXB element
+     * @throws RepositoryException the repository exception
+     */
     public JAXBElement<OAIPMHtype> listMetadataFormats(final Session session, final UriInfo uriInfo,
-                                                       final String identifier) throws RepositoryException {
+            final String identifier) throws RepositoryException {
 
         final ListMetadataFormatsType listMetadataFormats = oaiFactory.createListMetadataFormatsType();
 
@@ -199,7 +287,8 @@ public class OAIProviderService {
             if (path != null && !path.isEmpty()) {
                 /* generate metadata format response for a single pid */
                 if (!this.nodeService.exists(session, path)) {
-                    return error(VerbType.LIST_METADATA_FORMATS, identifier, null, OAIPMHerrorcodeType.ID_DOES_NOT_EXIST,
+                    return error(VerbType.LIST_METADATA_FORMATS, identifier, null,
+                            OAIPMHerrorcodeType.ID_DOES_NOT_EXIST,
                             "The object does not exist");
                 }
                 final FedoraObject obj = this.objectService.findOrCreateObject(session, "/" + identifier);
@@ -223,12 +312,7 @@ public class OAIProviderService {
         oai.setRequest(req);
         return oaiFactory.createOAIPMH(oai);
     }
-//
-//    private List<MetadataFormatType> listObjectMetadataFormats(final Session session, final FedoraObject obj) throws RepositoryException {
-//        final List<MetadataFormatType> types = new ArrayList<>();
-//        return types;
-//    }
-//
+
     private List<MetadataFormatType> listAvailableMetadataFormats() {
         final List<MetadataFormatType> types = new ArrayList<>(metadataFormats.size());
         for (MetadataFormat mdf : metadataFormats.values()) {
@@ -240,13 +324,19 @@ public class OAIProviderService {
         }
         return types;
     }
-//
-//    public void setMetadataFormats(final Map<String, MetadataFormat> metadataFormats) {
-//        this.metadataFormats = metadataFormats;
-//    }
-//
+
+    /**
+     * Gets record.
+     *
+     * @param session the session
+     * @param uriInfo the uri info
+     * @param identifier the identifier
+     * @param metadataPrefix the metadata prefix
+     * @return the record
+     * @throws RepositoryException the repository exception
+     */
     public JAXBElement<OAIPMHtype> getRecord(final Session session, final UriInfo uriInfo, final String identifier,
-                                             final String metadataPrefix) throws RepositoryException {
+            final String metadataPrefix) throws RepositoryException {
         final MetadataFormat format = metadataFormats.get(metadataPrefix);
         if (format == null) {
             return error(VerbType.GET_RECORD, identifier, metadataPrefix,
@@ -268,16 +358,15 @@ public class OAIProviderService {
         }
     }
 
-    private JAXBElement<OAIPMHtype> generateOaiDc(final Session session, String identifier, UriInfo uriInfo) throws RepositoryException{
+    private JAXBElement<OAIPMHtype> generateOaiDc(final Session session, String identifier, UriInfo uriInfo)
+            throws RepositoryException {
         final FedoraObject obj = this.objectService.findOrCreateObject(session, "/" + identifier);
-
 
         final OAIPMHtype oai = oaiFactory.createOAIPMHtype();
         final RequestType req = oaiFactory.createRequestType();
         req.setVerb(VerbType.GET_RECORD);
         req.setValue(uriInfo.getRequestUri().toASCIIString());
         oai.setRequest(req);
-
 
         final GetRecordType getRecord = oaiFactory.createGetRecordType();
         final RecordType record = oaiFactory.createRecordType();
@@ -291,7 +380,8 @@ public class OAIProviderService {
         final MetadataType md = this.oaiFactory.createMetadataType();
         final InputStream src = jcrPropertiesGenerator.getStream(obj.getNode());
         if (src == null) {
-            return error(VerbType.GET_RECORD, identifier, "oai_dc", OAIPMHerrorcodeType.CANNOT_DISSEMINATE_FORMAT, "Error occured while trying to generate Dublin Core response");
+            return error(VerbType.GET_RECORD, identifier, "oai_dc", OAIPMHerrorcodeType.CANNOT_DISSEMINATE_FORMAT,
+                    "Error occured while trying to generate Dublin Core response");
         }
         try {
             md.setAny(new JAXBElement<String>(new QName("oai_dc"), String.class, IOUtils.toString(src)));
@@ -310,8 +400,18 @@ public class OAIProviderService {
         return null;
     }
 
+    /**
+     * Creates a OAI error response for JAX-B
+     *
+     * @param verb the verb
+     * @param identifier the identifier
+     * @param metadataPrefix the metadata prefix
+     * @param errorCode the error code
+     * @param msg the msg
+     * @return the jAXB element
+     */
     public static JAXBElement<OAIPMHtype> error(VerbType verb, String identifier, String metadataPrefix,
-                                                OAIPMHerrorcodeType errorCode, String msg) {
+            OAIPMHerrorcodeType errorCode, String msg) {
         final OAIPMHtype oai = oaiFactory.createOAIPMHtype();
         final RequestType req = oaiFactory.createRequestType();
         req.setVerb(verb);
@@ -326,12 +426,19 @@ public class OAIProviderService {
         return oaiFactory.createOAIPMH(oai);
     }
 
-//    private void checkRequestedMetadataPrefix(final String prefix) throws RepositoryException {
-//        if (!metadataFormats.containsKey(prefix)) {
-//            throw new RepositoryException("Metadata prefix '" + prefix + "' is not available");
-//        }
-//    }
-//
+    /**
+     * List identifiers.
+     *
+     * @param session the session
+     * @param uriInfo the uri info
+     * @param metadataPrefix the metadata prefix
+     * @param from the from
+     * @param until the until
+     * @param set the set
+     * @param offset the offset
+     * @return the jAXB element
+     * @throws RepositoryException the repository exception
+     */
     public JAXBElement<OAIPMHtype> listIdentifiers(Session session, UriInfo uriInfo, String metadataPrefix,
                                                    String from, String until, String set, int offset) throws RepositoryException {
 
@@ -365,7 +472,7 @@ public class OAIProviderService {
             if (fromDateTime != null) {
                 filters.add("?date >='" + from + "'^^xsd:dateTime ");
             }
-            if (untilDateTime!= null) {
+            if (untilDateTime != null) {
                 filters.add("?date <='" + until + "'^^xsd:dateTime ");
             }
         }
@@ -379,7 +486,7 @@ public class OAIProviderService {
         }
 
         int filterCount = 0;
-        for (String filter:filters) {
+        for (String filter : filters) {
             if (filterCount++ == 0) {
                 sparql.append("FILTER (");
             }
@@ -420,7 +527,7 @@ public class OAIProviderService {
                 }
                 for (String name : setNames) {
                     final FedoraObject setObject = this.objectService.findOrCreateObject(session, setsRootPath + "/" + name);
-                    final RdfStream setTriples = setObject.getTriples(converter,PropertiesRdfContext.class).filter(new PropertyPredicate(propertyHasSetSpec));
+                    final RdfStream setTriples = setObject.getTriples(converter, PropertiesRdfContext.class).filter(new PropertyPredicate(propertyHasSetSpec));
                     h.getSetSpec().add(setTriples.next().getObject().getLiteralValue().toString());
                 }
                 ids.getHeader().add(h);
@@ -443,8 +550,20 @@ public class OAIProviderService {
         }
     }
 
+    /**
+     * Encode resumption token.
+     *
+     * @param verb the verb
+     * @param metadataPrefix the metadata prefix
+     * @param from the from
+     * @param until the until
+     * @param set the set
+     * @param offset the offset
+     * @return the string
+     * @throws UnsupportedEncodingException the unsupported encoding exception
+     */
     public static String encodeResumptionToken(String verb, String metadataPrefix, String from, String until,
-                                               String set, int offset) throws UnsupportedEncodingException {
+            String set, int offset) throws UnsupportedEncodingException {
         if (from == null) {
             from = "";
         }
@@ -455,24 +574,45 @@ public class OAIProviderService {
             set = "";
         }
         String[] data = new String[] {
-                urlEncode(verb),
-                urlEncode(metadataPrefix),
-                urlEncode(from),
-                urlEncode(until),
-                urlEncode(set),
-                urlEncode(String.valueOf(offset))
+            urlEncode(verb),
+            urlEncode(metadataPrefix),
+            urlEncode(from),
+            urlEncode(until),
+            urlEncode(set),
+            urlEncode(String.valueOf(offset))
         };
         return Base64.encodeBase64URLSafeString(StringUtils.join(data, ':').getBytes("UTF-8"));
     }
 
+    /**
+     * Url encode.
+     *
+     * @param value the value
+     * @return the string
+     * @throws UnsupportedEncodingException the unsupported encoding exception
+     */
     public static String urlEncode(String value) throws UnsupportedEncodingException {
         return URLEncoder.encode(value, "UTF-8");
     }
 
+    /**
+     * Url decode.
+     *
+     * @param value the value
+     * @return the string
+     * @throws UnsupportedEncodingException the unsupported encoding exception
+     */
     public static String urlDecode(String value) throws UnsupportedEncodingException {
         return URLDecoder.decode(value, "UTF-8");
     }
 
+    /**
+     * Decode resumption token.
+     *
+     * @param token the token
+     * @return the resumption token
+     * @throws UnsupportedEncodingException the unsupported encoding exception
+     */
     public static ResumptionToken decodeResumptionToken(String token) throws UnsupportedEncodingException {
         String[] data = StringUtils.splitPreserveAllTokens(new String(Base64.decodeBase64(token)), ':');
         final String verb = urlDecode(data[0]);
@@ -484,11 +624,22 @@ public class OAIProviderService {
         return new ResumptionToken(verb, metadataPrefix, from, until, offset, set);
     }
 
+    /**
+     * List sets.
+     *
+     * @param session the session
+     * @param uriInfo the uri info
+     * @param offset the offset
+     * @return the jAXB element
+     * @throws RepositoryException the repository exception
+     */
     public JAXBElement<OAIPMHtype> listSets(Session session, UriInfo uriInfo, int offset) throws RepositoryException {
-        final HttpResourceConverter converter = new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
+        final HttpResourceConverter converter =
+                new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
         try {
             if (!setsEnabled) {
-                return error(VerbType.LIST_SETS, null, null, OAIPMHerrorcodeType.NO_SET_HIERARCHY, "Set are not enabled");
+                return error(VerbType.LIST_SETS, null, null, OAIPMHerrorcodeType.NO_SET_HIERARCHY,
+                        "Set are not enabled");
             }
             final StringBuilder sparql = new StringBuilder("SELECT ?obj WHERE {")
                     .append("<").append(converter.toDomain(setsRootPath)).append(">")
@@ -525,8 +676,18 @@ public class OAIProviderService {
         }
     }
 
+    /**
+     * Create set.
+     *
+     * @param session the session
+     * @param uriInfo the uri info
+     * @param src the src
+     * @return the string
+     * @throws RepositoryException the repository exception
+     */
     public String createSet(Session session, UriInfo uriInfo, InputStream src) throws RepositoryException {
-        final HttpResourceConverter converter = new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
+        final HttpResourceConverter converter =
+                new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
         try {
             final SetType set = this.unmarshaller.unmarshal(new StreamSource(src), SetType.class).getValue();
             final String setId = getSetId(set);
@@ -579,10 +740,23 @@ public class OAIProviderService {
         return id;
     }
 
+    /**
+     * List records.
+     *
+     * @param session the session
+     * @param uriInfo the uri info
+     * @param metadataPrefix the metadata prefix
+     * @param from the from
+     * @param until the until
+     * @param set the set
+     * @param offset the offset
+     * @return the jAXB element
+     * @throws RepositoryException the repository exception
+     */
     public JAXBElement<OAIPMHtype> listRecords(Session session, UriInfo uriInfo, String metadataPrefix, String from, String until, String set, int offset) throws RepositoryException {
 
         final HttpResourceConverter converter =
-                new HttpResourceConverter(session,uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
+                new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
 
         if (metadataPrefix == null) {
             return error(VerbType.LIST_RECORDS, null, null, OAIPMHerrorcodeType.BAD_ARGUMENT, "metadataprefix is invalid");
@@ -612,7 +786,7 @@ public class OAIProviderService {
             if (fromDateTime != null) {
                 filters.add("?date >='" + from + "'^^xsd:dateTime ");
             }
-            if (untilDateTime!= null) {
+            if (untilDateTime != null) {
                 filters.add("?date <='" + until + "'^^xsd:dateTime ");
             }
         }
@@ -626,7 +800,7 @@ public class OAIProviderService {
         }
 
         int filterCount = 0;
-        for (String filter:filters) {
+        for (String filter : filters) {
             if (filterCount++ == 0) {
                 sparql.append("FILTER (");
             }
@@ -664,7 +838,7 @@ public class OAIProviderService {
                 }
                 for (String name : setNames) {
                     final FedoraObject setObject = this.objectService.findOrCreateObject(session, setsRootPath + "/" + name);
-                    final RdfStream setTriples = setObject.getTriples(converter,PropertiesRdfContext.class).filter(new PropertyPredicate(propertyHasSetSpec));
+                    final RdfStream setTriples = setObject.getTriples(converter, PropertiesRdfContext.class).filter(new PropertyPredicate(propertyHasSetSpec));
                     h.getSetSpec().add(setTriples.next().getObject().getLiteralValue().toString());
                 }
 
@@ -699,5 +873,4 @@ public class OAIProviderService {
             throw new RepositoryException(e);
         }
     }
-
 }

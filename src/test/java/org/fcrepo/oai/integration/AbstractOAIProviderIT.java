@@ -13,7 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.fcrepo.oai.integration;
+
+import static java.lang.Integer.MAX_VALUE;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static javax.ws.rs.core.Response.Status.CREATED;
+import static org.apache.http.impl.client.HttpClientBuilder.create;
+import static org.junit.Assert.assertEquals;
+import static org.slf4j.LoggerFactory.getLogger;
+
+import java.io.*;
+
+import javax.xml.bind.*;
+import javax.xml.namespace.QName;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -36,19 +49,10 @@ import org.slf4j.Logger;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import javax.xml.bind.*;
-import javax.xml.namespace.QName;
-import java.io.*;
-
-import static java.lang.Integer.MAX_VALUE;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static javax.ws.rs.core.Response.Status.CREATED;
-import static org.apache.http.impl.client.HttpClientBuilder.create;
-import static org.junit.Assert.assertEquals;
-import static org.slf4j.LoggerFactory.getLogger;
-
 /**
- * <p>Abstract AbstractResourceIT class.</p>
+ * <p>
+ * Abstract AbstractResourceIT class.
+ * </p>
  *
  * @author fasseg
  */
@@ -110,7 +114,7 @@ public abstract class AbstractOAIProviderIT {
     }
 
     protected static HttpPut putDSMethod(final String pid, final String ds,
-                                         final String content) throws UnsupportedEncodingException {
+            final String content) throws UnsupportedEncodingException {
         final HttpPut put =
                 new HttpPut(serverAddress + pid + "/" + ds);
 
@@ -119,7 +123,7 @@ public abstract class AbstractOAIProviderIT {
     }
 
     protected int getStatus(final HttpUriRequest method)
-        throws ClientProtocolException, IOException {
+            throws ClientProtocolException, IOException {
         logger.debug("Executing: " + method.getMethod() + " to " +
                 method.getURI());
         return client.execute(method).getStatusLine().getStatusCode();
@@ -132,10 +136,10 @@ public abstract class AbstractOAIProviderIT {
         }
         if (set != null && !set.isEmpty()) {
             StringBuilder sparql = new StringBuilder("INSERT {")
-                .append("<> ")
-                .append("<http://fedora.info/definitions/v4/config#isPartOfOAISet> ")
-                .append("\"").append(set).append("\" .")
-                .append("} WHERE {}");
+                    .append("<> ")
+                    .append("<http://fedora.info/definitions/v4/config#isPartOfOAISet> ")
+                    .append("\"").append(set).append("\" .")
+                    .append("} WHERE {}");
             post.setEntity(new StringEntity(sparql.toString()));
             post.addHeader("Content-Type", "application/sparql-update");
         }
@@ -160,7 +164,7 @@ public abstract class AbstractOAIProviderIT {
 
     @SuppressWarnings("unchecked")
     public HttpResponse getOAIPMHResponse(String verb, String identifier, String metadataPrefix, String from,
-                                          String until, String set) throws IOException,
+            String until, String set) throws IOException,
             JAXBException {
         final StringBuilder url = new StringBuilder(serverAddress)
                 .append("/oai?verb=")

@@ -13,7 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.fcrepo.oai.integration;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.io.IOException;
+import java.io.StringWriter;
+
+import javax.annotation.PostConstruct;
+import javax.xml.bind.JAXBElement;
+import javax.xml.namespace.QName;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -23,15 +34,6 @@ import org.junit.Test;
 import org.openarchives.oai._2.IdentifyType;
 import org.openarchives.oai._2.OAIPMHtype;
 import org.openarchives.oai._2.VerbType;
-
-import javax.annotation.PostConstruct;
-import javax.xml.bind.JAXBElement;
-import javax.xml.namespace.QName;
-import java.io.IOException;
-import java.io.StringWriter;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 public class IdentifyIT extends AbstractOAIProviderIT {
 
@@ -45,9 +47,10 @@ public class IdentifyIT extends AbstractOAIProviderIT {
 
             HttpPost post = new HttpPost(this.serverAddress);
             StringWriter data = new StringWriter();
-            this.marshaller.marshal(new JAXBElement<IdentifyType>(new QName("Identify"), IdentifyType.class, id), data);
+            this.marshaller.marshal(new JAXBElement<IdentifyType>(new QName("Identify"), IdentifyType.class, id),
+                    data);
             post.setEntity(new StringEntity(data.toString()));
-            post.addHeader("Content-Type","application/octet-stream");
+            post.addHeader("Content-Type", "application/octet-stream");
             post.addHeader("Slug", "oai_identify");
             try {
                 HttpResponse resp = this.client.execute(post);

@@ -13,7 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.fcrepo.oai.integration;
+
+import static org.junit.Assert.*;
+
+import javax.xml.bind.JAXBElement;
 
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.http.HttpResponse;
@@ -21,10 +26,6 @@ import org.junit.Test;
 import org.openarchives.oai._2.OAIPMHerrorcodeType;
 import org.openarchives.oai._2.OAIPMHtype;
 import org.openarchives.oai._2.VerbType;
-
-import javax.xml.bind.JAXBElement;
-
-import static org.junit.Assert.*;
 
 public class ListIdentifiersIT extends AbstractOAIProviderIT {
 

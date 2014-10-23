@@ -13,14 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.fcrepo.oai.http;
 
-import org.fcrepo.oai.ResumptionToken;
-import org.fcrepo.oai.service.OAIProviderService;
-import org.openarchives.oai._2.OAIPMHerrorcodeType;
-import org.openarchives.oai._2.VerbType;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Scope;
+import static org.openarchives.oai._2.VerbType.*;
+
+import java.io.InputStream;
+import java.net.URI;
 
 import javax.inject.Inject;
 import javax.jcr.RepositoryException;
@@ -31,11 +30,19 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import javax.xml.bind.JAXBException;
-import java.io.InputStream;
-import java.net.URI;
 
-import static org.openarchives.oai._2.VerbType.*;
+import org.fcrepo.oai.ResumptionToken;
+import org.fcrepo.oai.service.OAIProviderService;
+import org.openarchives.oai._2.OAIPMHerrorcodeType;
+import org.openarchives.oai._2.VerbType;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
 
+/**
+ * The type OAI web resource.
+ *
+ * @author Frank Asseg
+ */
 @Scope("request")
 @Path("/oai")
 public class OAIWebResource {
@@ -46,6 +53,14 @@ public class OAIWebResource {
     @Autowired
     private OAIProviderService providerService;
 
+    /**
+     * Create set.
+     *
+     * @param uriInfo the uri info
+     * @param src the src
+     * @return the response
+     * @throws RepositoryException the repository exception
+     */
     @POST
     @Path("/sets")
     @Consumes(MediaType.TEXT_XML)
@@ -54,6 +69,20 @@ public class OAIWebResource {
         return Response.created(URI.create(path)).build();
     }
 
+    /**
+     * Gets OAI response.
+     *
+     * @param verb the verb
+     * @param identifier the identifier
+     * @param metadataPrefix the metadata prefix
+     * @param from the from
+     * @param until the until
+     * @param set the set
+     * @param resumptionToken the resumption token
+     * @param uriInfo the uri info
+     * @return the oAI response
+     * @throws RepositoryException the repository exception
+     */
     @GET
     @Produces(MediaType.TEXT_XML)
     public Object getOAIResponse(
@@ -159,6 +188,5 @@ public class OAIWebResource {
             }
         }
     }
-
 
 }

@@ -13,8 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.fcrepo.oai;
 
+/**
+ * A representation of a OAI compliant resumption token.
+ *
+ * @author Frank Asseg
+ */
 public class ResumptionToken {
 
     private final String verb;
@@ -29,6 +35,16 @@ public class ResumptionToken {
 
     private final String metadataPrefix;
 
+    /**
+     * Create a new resumption token with the given OAI parameters
+     *
+     * @param verb the OAI verb
+     * @param metadataPrefix the OAI metadata prefix
+     * @param from the first date constraint value
+     * @param until the secod date constraint value
+     * @param offset indicates the current cursor position for list operations
+     * @param set the name of the OAI set
+     */
     public ResumptionToken(String verb, String metadataPrefix, String from, String until, int offset, String set) {
         this.verb = verb;
         this.from = from;
@@ -38,26 +54,56 @@ public class ResumptionToken {
         this.set = set;
     }
 
+    /**
+     * Gets metadata prefix.
+     *
+     * @return the metadata prefix
+     */
     public String getMetadataPrefix() {
         return metadataPrefix;
     }
 
+    /**
+     * Gets offset.
+     *
+     * @return the offset
+     */
     public int getOffset() {
         return offset;
     }
 
+    /**
+     * Gets verb.
+     *
+     * @return the verb
+     */
     public String getVerb() {
         return verb;
     }
 
+    /**
+     * Gets from.
+     *
+     * @return the from
+     */
     public String getFrom() {
         return from;
     }
 
+    /**
+     * Gets until.
+     *
+     * @return the until
+     */
     public String getUntil() {
         return until;
     }
 
+    /**
+     * Gets set.
+     *
+     * @return the set
+     */
     public String getSet() {
         return set;
     }
