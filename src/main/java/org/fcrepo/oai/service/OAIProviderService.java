@@ -490,48 +490,47 @@ public class OAIProviderService {
         return new ResumptionToken(verb, metadataPrefix, from, until, offset, set);
     }
 
-//    public JAXBElement<OAIPMHtype> listSets(Session session, UriInfo uriInfo, int offset) throws RepositoryException {
-//        final HttpIdentifierTranslator translator =
-//                new HttpIdentifierTranslator(session, FedoraNodes.class, uriInfo);
-//        try {
-//            if (!setsEnabled) {
-//                return error(VerbType.LIST_SETS, null, null, OAIPMHerrorcodeType.NO_SET_HIERARCHY, "Set are not enabled");
-//            }
-//            final StringBuilder sparql = new StringBuilder("SELECT ?obj WHERE {")
-//                    .append("<").append(translator.getSubject(setsRootPath)).append(">")
-//                    .append("<").append(propertyHasSets).append("> ?obj }");
-//            final JQLConverter jql = new JQLConverter(session, translator, sparql.toString());
-//            final ResultSet result = jql.execute();
-//            final OAIPMHtype oai = oaiFactory.createOAIPMHtype();
-//            final ListSetsType sets = oaiFactory.createListSetsType();
-//            while (result.hasNext()) {
-//                final Resource setRes = result.next().get("obj").asResource();
-//                sparql.setLength(0);
-//                sparql.append("SELECT ?name ?spec WHERE {")
-//                        .append("<").append(setRes).append("> ")
-//                        .append("<").append(propertySetName).append("> ")
-//                        .append("?name ; ")
-//                        .append("<").append(propertyHasSetSpec).append("> ")
-//                        .append("?spec . ")
-//                        .append("}");
-//                final JQLConverter setJql = new JQLConverter(session, translator, sparql.toString());
-//                final ResultSet setResult = setJql.execute();
-//                while (setResult.hasNext()) {
-//                    final SetType set = oaiFactory.createSetType();
-//                    QuerySolution sol = setResult.next();
-//                    set.setSetName(sol.get("name").asLiteral().getString());
-//                    set.setSetSpec(sol.get("spec").asLiteral().getString());
-//                    sets.getSet().add(set);
-//                }
-//            }
-//            oai.setListSets(sets);
-//            return oaiFactory.createOAIPMH(oai);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            throw new RepositoryException(e);
-//        }
-//    }
-//
+    public JAXBElement<OAIPMHtype> listSets(Session session, UriInfo uriInfo, int offset) throws RepositoryException {
+        final HttpResourceConverter converter = new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
+        try {
+            if (!setsEnabled) {
+                return error(VerbType.LIST_SETS, null, null, OAIPMHerrorcodeType.NO_SET_HIERARCHY, "Set are not enabled");
+            }
+            final StringBuilder sparql = new StringBuilder("SELECT ?obj WHERE {")
+                    .append("<").append(converter.toDomain(setsRootPath)).append(">")
+                    .append("<").append(propertyHasSets).append("> ?obj }");
+            final JQLConverter jql = new JQLConverter(session, converter, sparql.toString());
+            final ResultSet result = jql.execute();
+            final OAIPMHtype oai = oaiFactory.createOAIPMHtype();
+            final ListSetsType sets = oaiFactory.createListSetsType();
+            while (result.hasNext()) {
+                final Resource setRes = result.next().get("obj").asResource();
+                sparql.setLength(0);
+                sparql.append("SELECT ?name ?spec WHERE {")
+                        .append("<").append(setRes).append("> ")
+                        .append("<").append(propertySetName).append("> ")
+                        .append("?name ; ")
+                        .append("<").append(propertyHasSetSpec).append("> ")
+                        .append("?spec . ")
+                        .append("}");
+                final JQLConverter setJql = new JQLConverter(session, converter, sparql.toString());
+                final ResultSet setResult = setJql.execute();
+                while (setResult.hasNext()) {
+                    final SetType set = oaiFactory.createSetType();
+                    QuerySolution sol = setResult.next();
+                    set.setSetName(sol.get("name").asLiteral().getString());
+                    set.setSetSpec(sol.get("spec").asLiteral().getString());
+                    sets.getSet().add(set);
+                }
+            }
+            oai.setListSets(sets);
+            return oaiFactory.createOAIPMH(oai);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RepositoryException(e);
+        }
+    }
+
     public String createSet(Session session, UriInfo uriInfo, InputStream src) throws RepositoryException {
         final HttpResourceConverter converter = new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
         try {

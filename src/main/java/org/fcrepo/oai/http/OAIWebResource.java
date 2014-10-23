@@ -133,13 +133,16 @@ public class OAIWebResource {
             }
         }
 
-//        } else if (verb.equals(LIST_SETS.value())) {
-//            try {
-//                verifyEmpty(identifier);
-//            }catch(IllegalArgumentException e) {
-//                return providerService.error(VerbType.LIST_SETS, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
-//            }
-//            return providerService.listSets(session, uriInfo, offset);
+        /* list sets response */
+        if (verb.equals(LIST_SETS.value())) {
+            try {
+                verifyEmpty(identifier);
+            } catch (IllegalArgumentException e) {
+                return providerService.error(VerbType.LIST_SETS, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
+            }
+            return providerService.listSets(session, uriInfo, offset);
+        }
+
 //        } else if (verb.equals(LIST_RECORDS.value())) {
 //            try {
 //                verifyEmpty(identifier);
