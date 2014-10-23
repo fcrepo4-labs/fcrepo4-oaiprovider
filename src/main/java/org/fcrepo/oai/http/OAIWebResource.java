@@ -16,7 +16,12 @@
 
 package org.fcrepo.oai.http;
 
-import static org.openarchives.oai._2.VerbType.*;
+import static org.openarchives.oai._2.VerbType.GET_RECORD;
+import static org.openarchives.oai._2.VerbType.IDENTIFY;
+import static org.openarchives.oai._2.VerbType.LIST_IDENTIFIERS;
+import static org.openarchives.oai._2.VerbType.LIST_METADATA_FORMATS;
+import static org.openarchives.oai._2.VerbType.LIST_RECORDS;
+import static org.openarchives.oai._2.VerbType.LIST_SETS;
 
 import java.io.InputStream;
 import java.net.URI;
@@ -24,7 +29,12 @@ import java.net.URI;
 import javax.inject.Inject;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -86,18 +96,19 @@ public class OAIWebResource {
     @GET
     @Produces(MediaType.TEXT_XML)
     public Object getOAIResponse(
-            @QueryParam("verb") String verb,
-            @QueryParam("identifier") final String identifier,
+            @QueryParam("verb")  String verb,
+            @QueryParam("identifier")  String identifier,
             @QueryParam("metadataPrefix") String metadataPrefix,
-            @QueryParam("from") String from,
-            @QueryParam("until") String until,
-            @QueryParam("set") String set,
-            @QueryParam("resumptionToken") final String resumptionToken,
-            @Context final UriInfo uriInfo) throws RepositoryException {
+            @QueryParam("from")  String from,
+            @QueryParam("until")  String until,
+            @QueryParam("set")  String set,
+            @QueryParam("resumptionToken")  String resumptionToken,
+            @Context  UriInfo uriInfo) throws RepositoryException {
         int offset = 0;
 
 
-        /* If there's a resumption token present the data provided in the base64 encoded token is used to generate the request */
+        /* If there's a resumption token present the data provided in the
+            base64 encoded token is used to generate the request */
         if (resumptionToken != null && !resumptionToken.isEmpty()) {
             try {
                 final ResumptionToken token = OAIProviderService.decodeResumptionToken(resumptionToken);
@@ -108,7 +119,8 @@ public class OAIWebResource {
                 metadataPrefix = token.getMetadataPrefix();
                 offset = token.getOffset();
             } catch (Exception e) {
-                return providerService.error(null, null, null, OAIPMHerrorcodeType.BAD_RESUMPTION_TOKEN, "Resumption token is invalid");
+                return providerService.error(null, null, null, OAIPMHerrorcodeType.BAD_RESUMPTION_TOKEN,
+                        "Resumption token is invalid");
             }
         }
 
@@ -124,7 +136,8 @@ public class OAIWebResource {
                 verifyEmpty(identifier, metadataPrefix, from, until, set);
                 return providerService.identify(this.session, uriInfo);
             } catch (JAXBException | IllegalArgumentException e) {
-                return providerService.error(VerbType.IDENTIFY, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
+                return providerService.error(VerbType.IDENTIFY, identifier, metadataPrefix,
+                        OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
             }
         }
 
@@ -134,7 +147,8 @@ public class OAIWebResource {
                 verifyEmpty(from, until, set);
                 return providerService.listMetadataFormats(this.session, uriInfo, identifier);
             } catch (IllegalArgumentException e) {
-                return providerService.error(VerbType.LIST_METADATA_FORMATS, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
+                return providerService.error(VerbType.LIST_METADATA_FORMATS, identifier, metadataPrefix,
+                        OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
             }
         }
 
@@ -145,7 +159,8 @@ public class OAIWebResource {
                 return providerService.getRecord(this.session, uriInfo, identifier, metadataPrefix);
 
             } catch (IllegalArgumentException e) {
-                return providerService.error(VerbType.GET_RECORD, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
+                return providerService.error(VerbType.GET_RECORD, identifier, metadataPrefix,
+                        OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
             }
         }
 
@@ -155,7 +170,8 @@ public class OAIWebResource {
                 verifyEmpty(identifier);
                 return providerService.listIdentifiers(this.session, uriInfo, metadataPrefix, from, until, set, offset);
             } catch (IllegalArgumentException e) {
-                return providerService.error(VerbType.LIST_IDENTIFIERS, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
+                return providerService.error(VerbType.LIST_IDENTIFIERS, identifier, metadataPrefix,
+                        OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
             }
         }
 
@@ -164,7 +180,8 @@ public class OAIWebResource {
             try {
                 verifyEmpty(identifier);
             } catch (IllegalArgumentException e) {
-                return providerService.error(VerbType.LIST_SETS, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
+                return providerService.error(VerbType.LIST_SETS, identifier, metadataPrefix,
+                        OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
             }
             return providerService.listSets(session, uriInfo, offset);
         }
@@ -175,10 +192,12 @@ public class OAIWebResource {
                 verifyEmpty(identifier);
                 return providerService.listRecords(this.session, uriInfo, metadataPrefix, from, until, set, offset);
             } catch (IllegalArgumentException e) {
-                return providerService.error(VerbType.LIST_SETS, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
+                return providerService.error(VerbType.LIST_SETS, identifier, metadataPrefix,
+                        OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
             }
         }
-        return providerService.error(null, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_VERB, "Unknown verb '" + verb + "'");
+        return providerService.error(null, identifier, metadataPrefix, OAIPMHerrorcodeType.BAD_VERB,
+                "Unknown verb '" + verb + "'");
     }
 
     private void verifyEmpty(String... data) throws IllegalArgumentException {

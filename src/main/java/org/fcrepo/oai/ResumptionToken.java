@@ -45,7 +45,8 @@ public class ResumptionToken {
      * @param offset indicates the current cursor position for list operations
      * @param set the name of the OAI set
      */
-    public ResumptionToken(String verb, String metadataPrefix, String from, String until, int offset, String set) {
+    public ResumptionToken(final String verb, final String metadataPrefix, final String from, final String until,
+            final int offset, final String set) {
         this.verb = verb;
         this.from = from;
         this.metadataPrefix = metadataPrefix;

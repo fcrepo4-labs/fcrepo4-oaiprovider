@@ -20,10 +20,20 @@ import com.google.common.base.Predicate;
 import com.hp.hpl.jena.graph.Node;
 import com.hp.hpl.jena.graph.Triple;
 
+/**
+ * The type Property predicate.
+ *
+ * @author Frank Asseg
+ */
 public class PropertyPredicate implements Predicate<Triple> {
 
     private final String property;
 
+    /**
+     * Instantiates a new Property predicate.
+     *
+     * @param property the property
+     */
     public PropertyPredicate(String property) {
         this.property = property;
     }

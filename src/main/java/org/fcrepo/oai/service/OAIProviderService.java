@@ -21,7 +21,11 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.List;
+import java.util.Map;
 
 import javax.annotation.PostConstruct;
 import javax.jcr.RepositoryException;
@@ -59,7 +63,24 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
-import org.openarchives.oai._2.*;
+import org.openarchives.oai._2.DescriptionType;
+import org.openarchives.oai._2.GetRecordType;
+import org.openarchives.oai._2.HeaderType;
+import org.openarchives.oai._2.IdentifyType;
+import org.openarchives.oai._2.ListIdentifiersType;
+import org.openarchives.oai._2.ListMetadataFormatsType;
+import org.openarchives.oai._2.ListRecordsType;
+import org.openarchives.oai._2.ListSetsType;
+import org.openarchives.oai._2.MetadataFormatType;
+import org.openarchives.oai._2.MetadataType;
+import org.openarchives.oai._2.OAIPMHerrorType;
+import org.openarchives.oai._2.OAIPMHerrorcodeType;
+import org.openarchives.oai._2.OAIPMHtype;
+import org.openarchives.oai._2.ObjectFactory;
+import org.openarchives.oai._2.RecordType;
+import org.openarchives.oai._2.RequestType;
+import org.openarchives.oai._2.SetType;
+import org.openarchives.oai._2.VerbType;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.hp.hpl.jena.query.QuerySolution;
@@ -440,10 +461,12 @@ public class OAIProviderService {
      * @throws RepositoryException the repository exception
      */
     public JAXBElement<OAIPMHtype> listIdentifiers(Session session, UriInfo uriInfo, String metadataPrefix,
-                                                   String from, String until, String set, int offset) throws RepositoryException {
+                                                   String from, String until, String set, int offset)
+            throws RepositoryException {
 
         if (metadataPrefix == null) {
-            return error(VerbType.LIST_IDENTIFIERS, null, null, OAIPMHerrorcodeType.BAD_ARGUMENT, "metadataprefix is invalid");
+            return error(VerbType.LIST_IDENTIFIERS, null, null, OAIPMHerrorcodeType.BAD_ARGUMENT,
+                    "metadataprefix is invalid");
         }
 
         final MetadataFormat mdf = metadataFormats.get(metadataPrefix);
@@ -458,12 +481,14 @@ public class OAIProviderService {
             fromDateTime = (from != null && !from.isEmpty()) ? dateFormat.parseDateTime(from) : null;
             untilDateTime = (until != null && !until.isEmpty()) ? dateFormat.parseDateTime(until) : null;
         } catch (IllegalArgumentException e) {
-            return error(VerbType.LIST_IDENTIFIERS, null, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, e.getMessage());
+            return error(VerbType.LIST_IDENTIFIERS, null, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT,
+                    e.getMessage());
         }
 
         final StringBuilder sparql =
                 new StringBuilder("PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> ")
-                        .append("SELECT ?sub ?pred ?obj WHERE {?sub <" + RdfLexicon.HAS_MIXIN_TYPE + "> \"fedora:object\" . ");
+                        .append("SELECT ?sub ?pred ?obj WHERE {?sub <" +
+                                RdfLexicon.HAS_MIXIN_TYPE + "> \"fedora:object\" . ");
 
         final List<String> filters = new ArrayList<>();
 
@@ -479,7 +504,8 @@ public class OAIProviderService {
 
         if (set != null && !set.isEmpty()) {
             if (!setsEnabled) {
-                return error(VerbType.LIST_IDENTIFIERS, null, metadataPrefix, OAIPMHerrorcodeType.NO_SET_HIERARCHY, "Sets are not enabled");
+                return error(VerbType.LIST_IDENTIFIERS, null, metadataPrefix, OAIPMHerrorcodeType.NO_SET_HIERARCHY,
+                        "Sets are not enabled");
             }
             sparql.append("?sub <").append(propertyIsPartOfSet).append("> ?set . ");
             filters.add("?set = '" + set + "'");
@@ -520,14 +546,17 @@ public class OAIProviderService {
                 h.setDatestamp(dateFormat.print(obj.getLastModifiedDate().getTime()));
 
 
-                RdfStream triples = obj.getTriples(converter, PropertiesRdfContext.class).filter(new PropertyPredicate(propertyIsPartOfSet));
+                RdfStream triples = obj.getTriples(converter, PropertiesRdfContext.class).filter(
+                        new PropertyPredicate(propertyIsPartOfSet));
                 final List<String> setNames = new ArrayList<>();
                 while (triples.hasNext()) {
                     setNames.add(triples.next().getObject().getLiteralValue().toString());
                 }
                 for (String name : setNames) {
-                    final FedoraObject setObject = this.objectService.findOrCreateObject(session, setsRootPath + "/" + name);
-                    final RdfStream setTriples = setObject.getTriples(converter, PropertiesRdfContext.class).filter(new PropertyPredicate(propertyHasSetSpec));
+                    final FedoraObject setObject = this.objectService.findOrCreateObject(session, setsRootPath + "/"
+                            + name);
+                    final RdfStream setTriples = setObject.getTriples(converter, PropertiesRdfContext.class).filter(
+                            new PropertyPredicate(propertyHasSetSpec));
                     h.getSetSpec().add(setTriples.next().getObject().getLiteralValue().toString());
                 }
                 ids.getHeader().add(h);
@@ -753,13 +782,15 @@ public class OAIProviderService {
      * @return the jAXB element
      * @throws RepositoryException the repository exception
      */
-    public JAXBElement<OAIPMHtype> listRecords(Session session, UriInfo uriInfo, String metadataPrefix, String from, String until, String set, int offset) throws RepositoryException {
+    public JAXBElement<OAIPMHtype> listRecords(Session session, UriInfo uriInfo, String metadataPrefix, String from,
+                                               String until, String set, int offset) throws RepositoryException {
 
         final HttpResourceConverter converter =
                 new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
 
         if (metadataPrefix == null) {
-            return error(VerbType.LIST_RECORDS, null, null, OAIPMHerrorcodeType.BAD_ARGUMENT, "metadataprefix is invalid");
+            return error(VerbType.LIST_RECORDS, null, null, OAIPMHerrorcodeType.BAD_ARGUMENT,
+                    "metadataprefix is invalid");
         }
         final MetadataFormat mdf = metadataFormats.get(metadataPrefix);
         if (mdf == null) {
@@ -772,12 +803,14 @@ public class OAIProviderService {
             fromDateTime = (from != null && !from.isEmpty()) ? dateFormat.parseDateTime(from) : null;
             untilDateTime = (until != null && !until.isEmpty()) ? dateFormat.parseDateTime(until) : null;
         } catch (IllegalArgumentException e) {
-            return error(VerbType.LIST_RECORDS, null, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT, e.getMessage());
+            return error(VerbType.LIST_RECORDS, null, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT,
+                    e.getMessage());
         }
 
         final StringBuilder sparql =
                 new StringBuilder("PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> ")
-                        .append("SELECT ?sub ?obj WHERE {?sub <" + RdfLexicon.HAS_MIXIN_TYPE + "> \"fedora:object\" . ");
+                        .append("SELECT ?sub ?obj WHERE {?sub <" + RdfLexicon.HAS_MIXIN_TYPE +
+                                "> \"fedora:object\" . ");
 
         final List<String> filters = new ArrayList<>();
 
@@ -793,7 +826,8 @@ public class OAIProviderService {
 
         if (set != null && !set.isEmpty()) {
             if (!setsEnabled) {
-                return error(VerbType.LIST_RECORDS, null, metadataPrefix, OAIPMHerrorcodeType.NO_SET_HIERARCHY, "Sets are not enabled");
+                return error(VerbType.LIST_RECORDS, null, metadataPrefix, OAIPMHerrorcodeType.NO_SET_HIERARCHY,
+                        "Sets are not enabled");
             }
             sparql.append("?sub <").append(propertyIsPartOfSet).append("> ?set . ");
             filters.add("?set = '" + set + "'");
@@ -831,14 +865,17 @@ public class OAIProviderService {
                 h.setDatestamp(dateFormat.print(obj.getLastModifiedDate().getTime()));
                 // get set names this object is part of
 
-                RdfStream triples = obj.getTriples(converter, PropertiesRdfContext.class).filter(new PropertyPredicate(propertyIsPartOfSet));
+                RdfStream triples = obj.getTriples(converter, PropertiesRdfContext.class).filter(
+                        new PropertyPredicate(propertyIsPartOfSet));
                 final List<String> setNames = new ArrayList<>();
                 while (triples.hasNext()) {
                     setNames.add(triples.next().getObject().getLiteralValue().toString());
                 }
                 for (String name : setNames) {
-                    final FedoraObject setObject = this.objectService.findOrCreateObject(session, setsRootPath + "/" + name);
-                    final RdfStream setTriples = setObject.getTriples(converter, PropertiesRdfContext.class).filter(new PropertyPredicate(propertyHasSetSpec));
+                    final FedoraObject setObject = this.objectService.findOrCreateObject(session,
+                            setsRootPath + "/" + name);
+                    final RdfStream setTriples = setObject.getTriples(converter, PropertiesRdfContext.class).filter(
+                            new PropertyPredicate(propertyHasSetSpec));
                     h.getSetSpec().add(setTriples.next().getObject().getLiteralValue().toString());
                 }
 
