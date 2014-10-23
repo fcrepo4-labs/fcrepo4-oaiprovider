@@ -33,6 +33,7 @@ import org.fcrepo.kernel.RdfLexicon;
 import org.fcrepo.kernel.services.BinaryService;
 import org.fcrepo.kernel.services.NodeService;
 import org.fcrepo.kernel.services.ObjectService;
+import org.fcrepo.kernel.utils.iterators.RdfStream;
 import org.fcrepo.oai.MetadataFormat;
 import org.fcrepo.oai.ResumptionToken;
 import org.fcrepo.transform.sparql.JQLConverter;
@@ -531,61 +532,60 @@ public class OAIProviderService {
 //        }
 //    }
 //
-//    public String createSet(Session session, UriInfo uriInfo, InputStream src) throws RepositoryException {
-//        final HttpIdentifierTranslator translator =
-//                new HttpIdentifierTranslator(session, FedoraNodes.class, uriInfo);
-//        try {
-//            final SetType set = this.unmarshaller.unmarshal(new StreamSource(src), SetType.class).getValue();
-//            final String setId = getSetId(set);
-//            if (!this.nodeService.exists(session, setsRootPath)) {
-//                throw new RepositoryException("The root set object does not exist");
-//            }
-//            final FedoraObject setRoot = this.objectService.findOrCreateObject(session, setsRootPath);
-//            if (set.getSetSpec() != null) {
-//                /* validate that the hierarchy of sets exists */
-//            }
-//
-//            if (!this.nodeService.exists(session, setsRootPath + "/" + setId)) {
-//                throw new RepositoryException("The OAI Set with the id " + setId + " could not be found");
-//            }
-//            final FedoraObject setObject = this.objectService.findOrCreateObject(session, setsRootPath + "/" + setId);
-//
-//            StringBuilder sparql =
-//                    new StringBuilder("INSERT DATA {<" + translator.getSubject(setRoot.getPath()) + "> <" +
-//                            propertyHasSets + "> <" + translator.getSubject(setObject.getPath()) + ">}");
-//            setRoot.updatePropertiesDataset(translator, sparql.toString());
-//
-//            sparql.setLength(0);
-//            sparql.append("INSERT DATA {")
-//                    .append("<" + translator.getSubject(setObject.getPath()) + "> <" + propertySetName +
-//                            "> '" + set.getSetName() + "' .")
-//                    .append("<" + translator.getSubject(setObject.getPath()) + "> <" + propertyHasSetSpec +
-//                            "> '" + set.getSetName() + "' .");
-//            for (DescriptionType desc : set.getSetDescription()) {
-//                // TODO: save description
-//            }
-//            sparql.append("}");
-//            setObject.updatePropertiesDataset(translator, sparql.toString());
-//            session.save();
-//            return setObject.getPath();
-//        } catch (JAXBException e) {
-//            e.printStackTrace();
-//            throw new RepositoryException(e);
-//        }
-//    }
-//
-//    private String getSetId(SetType set) throws RepositoryException {
-//        if (set.getSetSpec() == null) {
-//            throw new RepositoryException("SetSpec can not be empty");
-//        }
-//        String id = set.getSetSpec();
-//        int colonPos = id.indexOf(':');
-//        while (colonPos > 0) {
-//            id = id.substring(colonPos + 1);
-//        }
-//        return id;
-//    }
-//
+    public String createSet(Session session, UriInfo uriInfo, InputStream src) throws RepositoryException {
+        final HttpResourceConverter converter = new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
+        try {
+            final SetType set = this.unmarshaller.unmarshal(new StreamSource(src), SetType.class).getValue();
+            final String setId = getSetId(set);
+            if (!this.nodeService.exists(session, setsRootPath)) {
+                throw new RepositoryException("The root set object does not exist");
+            }
+            final FedoraObject setRoot = this.objectService.findOrCreateObject(session, setsRootPath);
+            if (set.getSetSpec() != null) {
+                /* validate that the hierarchy of sets exists */
+            }
+
+            if (this.nodeService.exists(session, setsRootPath + "/" + setId)) {
+                throw new RepositoryException("The OAI Set with the id already exists");
+            }
+            final FedoraObject setObject = this.objectService.findOrCreateObject(session, setsRootPath + "/" + setId);
+
+            StringBuilder sparql =
+                    new StringBuilder("INSERT DATA {<" + converter.toDomain(setRoot.getPath()) + "> <" +
+                            propertyHasSets + "> <" + converter.toDomain(setObject.getPath()) + ">}");
+            setRoot.updateProperties(converter, sparql.toString(), new RdfStream());
+
+            sparql.setLength(0);
+            sparql.append("INSERT DATA {")
+                    .append("<" + converter.toDomain(setObject.getPath()) + "> <" + propertySetName +
+                            "> '" + set.getSetName() + "' .")
+                    .append("<" + converter.toDomain(setObject.getPath()) + "> <" + propertyHasSetSpec +
+                            "> '" + set.getSetName() + "' .");
+            for (DescriptionType desc : set.getSetDescription()) {
+                // TODO: save description
+            }
+            sparql.append("}");
+            setObject.updateProperties(converter, sparql.toString(), new RdfStream());
+            session.save();
+            return setObject.getPath();
+        } catch (JAXBException e) {
+            e.printStackTrace();
+            throw new RepositoryException(e);
+        }
+    }
+
+    private String getSetId(SetType set) throws RepositoryException {
+        if (set.getSetSpec() == null) {
+            throw new RepositoryException("SetSpec can not be empty");
+        }
+        String id = set.getSetSpec();
+        int colonPos = id.indexOf(':');
+        while (colonPos > 0) {
+            id = id.substring(colonPos + 1);
+        }
+        return id;
+    }
+
 //    public JAXBElement<OAIPMHtype> listRecords(Session session, UriInfo uriInfo, String metadataPrefix, String from, String until, String set, int offset) throws RepositoryException {
 //
 //        final HttpIdentifierTranslator translator =

@@ -35,6 +35,7 @@ import javax.ws.rs.core.UriInfo;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import java.io.InputStream;
+import java.net.URI;
 
 import static org.openarchives.oai._2.VerbType.*;
 
@@ -52,7 +53,8 @@ public class OAIWebResource {
     @Path("/sets")
     @Consumes(MediaType.TEXT_XML)
     public Response createSet(@Context final UriInfo uriInfo, final InputStream src) throws RepositoryException {
-        return Response.serverError().build();
+        final String path = this.providerService.createSet(session, uriInfo, src);
+        return Response.created(URI.create(path)).build();
     }
 
     @GET

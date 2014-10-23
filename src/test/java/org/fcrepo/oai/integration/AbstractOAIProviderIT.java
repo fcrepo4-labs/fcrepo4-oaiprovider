@@ -22,6 +22,8 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.junit.Before;
@@ -29,16 +31,14 @@ import org.junit.runner.RunWith;
 import org.openarchives.oai._2.IdentifyType;
 import org.openarchives.oai._2.OAIPMHtype;
 import org.openarchives.oai._2.ObjectFactory;
+import org.openarchives.oai._2.SetType;
 import org.slf4j.Logger;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import javax.xml.bind.*;
+import javax.xml.namespace.QName;
+import java.io.*;
 
 import static java.lang.Integer.MAX_VALUE;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -170,5 +170,26 @@ public abstract class AbstractOAIProviderIT {
 
         HttpGet get = new HttpGet(url.toString());
         return this.client.execute(get);
+    }
+
+    protected void createSet(String setName, String setSpec) throws Exception {
+        final ObjectFactory fac = new ObjectFactory();
+        SetType set = fac.createSetType();
+        set.setSetName(setName);
+        if (setSpec != null) {
+            set.setSetSpec(setSpec);
+        } else {
+            set.setSetSpec(setName);
+        }
+        HttpPost post = new HttpPost(serverAddress + "/oai/sets");
+        post.setEntity(new InputStreamEntity(toStream(set), ContentType.TEXT_XML));
+        HttpResponse resp = this.client.execute(post);
+        assertEquals(201, resp.getStatusLine().getStatusCode());
+    }
+
+    private InputStream toStream(SetType set) throws JAXBException {
+        ByteArrayOutputStream sink = new ByteArrayOutputStream();
+        marshaller.marshal(new JAXBElement(new QName("set"), SetType.class, set), sink);
+        return new ByteArrayInputStream(sink.toByteArray());
     }
 }
