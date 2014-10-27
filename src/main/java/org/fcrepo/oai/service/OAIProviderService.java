@@ -57,6 +57,7 @@ import org.fcrepo.kernel.utils.iterators.RdfStream;
 import org.fcrepo.oai.MetadataFormat;
 import org.fcrepo.oai.PropertyPredicate;
 import org.fcrepo.oai.ResumptionToken;
+import org.fcrepo.oai.XmlDeclarationStrippingInputStream;
 import org.fcrepo.transform.sparql.JQLConverter;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -430,7 +431,7 @@ public class OAIProviderService {
         final String recordPath = triples.next().getObject().getLiteralValue().toString();
         final FedoraBinary bin = binaryService.findOrCreateBinary(session,"/" + recordPath);
 
-        try (final InputStream src = bin.getContent()) {
+        try (final InputStream src = new XmlDeclarationStrippingInputStream(bin.getContent())) {
             return new JAXBElement<String>(new QName(format.getPrefix()), String.class, IOUtils.toString(src));
         }
     }
