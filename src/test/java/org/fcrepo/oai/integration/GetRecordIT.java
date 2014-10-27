@@ -18,6 +18,7 @@ package org.fcrepo.oai.integration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import javax.xml.bind.JAXBElement;
 
@@ -52,14 +53,14 @@ public class GetRecordIT extends AbstractOAIProviderIT {
         assertEquals(0, oai.getError().size());
         assertNotNull(oai.getGetRecord().getRecord().getMetadata());
         assertNotNull(oai.getGetRecord().getRecord().getMetadata().getAny());
-        assertEquals(objId, oai.getGetRecord().getRecord().getHeader().getIdentifier());
+        assertTrue(oai.getGetRecord().getRecord().getHeader().getIdentifier().endsWith(objId));
     }
 
     @Test
     public void testGetOAIPremisRecord() throws Exception {
         String objId = "oai-test-" + RandomStringUtils.randomAlphabetic(8);
         String binaryPath = "premis-binary-" + RandomStringUtils.randomAlphabetic(8);
-        
+
         createBinaryObject(binaryPath, this.getClass().getClassLoader().getResourceAsStream("test-data/premis.xml"));
         createFedoraObjectWithOaiLink(objId, binaryPath, "http://fedora.info/definitions/v4/config#hasOaiPremisRecord");
 
@@ -70,7 +71,7 @@ public class GetRecordIT extends AbstractOAIProviderIT {
         assertEquals(0, oai.getError().size());
         assertNotNull(oai.getGetRecord().getRecord().getMetadata());
         assertNotNull(oai.getGetRecord().getRecord().getMetadata().getAny());
-        assertEquals(objId, oai.getGetRecord().getRecord().getHeader().getIdentifier());
+        assertTrue(oai.getGetRecord().getRecord().getHeader().getIdentifier().endsWith(objId));
     }
 
     @Test
@@ -88,7 +89,7 @@ public class GetRecordIT extends AbstractOAIProviderIT {
         assertEquals(0, oai.getError().size());
         assertNotNull(oai.getGetRecord().getRecord().getMetadata());
         assertNotNull(oai.getGetRecord().getRecord().getMetadata().getAny());
-        assertEquals(objId, oai.getGetRecord().getRecord().getHeader().getIdentifier());
+        assertTrue(oai.getGetRecord().getRecord().getHeader().getIdentifier().endsWith(objId));
     }
 
     @Test
@@ -106,7 +107,7 @@ public class GetRecordIT extends AbstractOAIProviderIT {
         assertEquals(0, oai.getError().size());
         assertNotNull(oai.getGetRecord().getRecord().getMetadata());
         assertNotNull(oai.getGetRecord().getRecord().getMetadata().getAny());
-        assertEquals(objId, oai.getGetRecord().getRecord().getHeader().getIdentifier());
+        assertTrue(oai.getGetRecord().getRecord().getHeader().getIdentifier().endsWith(objId));
     }
 
     @Test
@@ -124,6 +125,6 @@ public class GetRecordIT extends AbstractOAIProviderIT {
         assertEquals(0, oai.getError().size());
         assertNotNull(oai.getGetRecord().getRecord().getMetadata());
         assertNotNull(oai.getGetRecord().getRecord().getMetadata().getAny());
-        assertEquals(objId, oai.getGetRecord().getRecord().getHeader().getIdentifier());
+        assertTrue(oai.getGetRecord().getRecord().getHeader().getIdentifier().endsWith(objId));
     }
 }

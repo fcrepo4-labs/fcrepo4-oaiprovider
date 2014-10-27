@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 
 import javax.annotation.PostConstruct;
-import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.ws.rs.core.UriInfo;
@@ -392,48 +391,17 @@ public class OAIProviderService {
         oai.setRequest(req);
 
         final GetRecordType getRecord = oaiFactory.createGetRecordType();
-        final RecordType record = oaiFactory.createRecordType();
-        getRecord.setRecord(record);
-
-        final HeaderType header = oaiFactory.createHeaderType();
-        header.setIdentifier(identifier);
-        header.setDatestamp(dateFormat.print(new Date().getTime()));
-        record.setHeader(header);
-
-        final MetadataType md = this.oaiFactory.createMetadataType();
-
-        /* fetch and add the requested metadata to the get record response */
-        if (format.getPrefix().equals("oai_dc")) {
-            /* generate a OAI DC reponse using the DC Generator from fcrepo4 */
-            try {
-                md.setAny(generateOaiDc(obj, uriInfo));
-            } catch (IOException e) {
-                log.error("Error while create OAI DC record for object " + obj.getPath(), e);
-                return error(VerbType.GET_RECORD, identifier, format.getPrefix(),
-                        OAIPMHerrorcodeType.CANNOT_DISSEMINATE_FORMAT,
-                            "Error occured while trying to generate Dublin Core response");
-            }
-        } else {
-            /* generate a OAI response from the linked Binary */
-            try {
-                final JAXBElement<String> content = fetchOaiResponse(obj, session, format, uriInfo);
-                if (content == null) {
-                    return error(VerbType.GET_RECORD, identifier, format.getPrefix(),
-                            OAIPMHerrorcodeType.CANNOT_DISSEMINATE_FORMAT,
-                            "Error occured while trying to fetch OAI record for object" + obj.getPath());
-                }
-                md.setAny(content);
-            } catch (IOException e) {
-                log.error("Error while fetching OAI record for object " + obj.getPath(), e);
-                return error(VerbType.GET_RECORD, identifier, format.getPrefix(),
-                        OAIPMHerrorcodeType.CANNOT_DISSEMINATE_FORMAT,
-                        "Error occured while trying to fetch OAI record for object" + obj.getPath());
-            }
+        final RecordType record;
+        try {
+            record = this.createRecord(session, format, obj.getPath(), uriInfo);
+            getRecord.setRecord(record);
+            oai.setGetRecord(getRecord);
+            return this.oaiFactory.createOAIPMH(oai);
+        } catch (IOException e) {
+            log.error("Unable to create OAI record for object " + obj.getPath());
+            return error(VerbType.GET_RECORD, identifier, metadataPrefix, OAIPMHerrorcodeType.ID_DOES_NOT_EXIST,
+                    "The requested OAI record does not exist for object " + obj.getPath());
         }
-        record.setMetadata(md);
-        oai.setGetRecord(getRecord);
-
-        return this.oaiFactory.createOAIPMH(oai);
     }
 
     private JAXBElement<String> generateOaiDc(final FedoraObject obj,
@@ -895,43 +863,9 @@ public class OAIProviderService {
             }
             while (result.hasNext()) {
                 // check if the records exists
-                final RecordType record = oaiFactory.createRecordType();
-                final HeaderType h = oaiFactory.createHeaderType();
                 final QuerySolution solution = result.next();
                 final Resource subjectUri = solution.get("sub").asResource();
-                h.setIdentifier(subjectUri.getURI());
-
-                final FedoraObject obj =
-                        this.objectService.findOrCreateObject(session, converter.asString(subjectUri));
-                h.setDatestamp(dateFormat.print(obj.getLastModifiedDate().getTime()));
-                // get set names this object is part of
-
-                final RdfStream triples = obj.getTriples(converter, PropertiesRdfContext.class).filter(
-                        new PropertyPredicate(propertyIsPartOfSet));
-                final List<String> setNames = new ArrayList<>();
-                while (triples.hasNext()) {
-                    setNames.add(triples.next().getObject().getLiteralValue().toString());
-                }
-                for (String name : setNames) {
-                    final FedoraObject setObject = this.objectService.findOrCreateObject(session,
-                            setsRootPath + "/" + name);
-                    final RdfStream setTriples = setObject.getTriples(converter, PropertiesRdfContext.class).filter(
-                            new PropertyPredicate(propertyHasSetSpec));
-                    h.getSetSpec().add(setTriples.next().getObject().getLiteralValue().toString());
-                }
-
-                // get the metadata record from fcrepo
-                final MetadataType md = this.oaiFactory.createMetadataType();
-                if (metadataPrefix.equals("oai_dc")) {
-                    /* generate a OAI DC reponse using the DC Generator from fcrepo4 */
-                    md.setAny(generateOaiDc(obj, uriInfo));
-                } else {
-                    /* generate a OAI response from the linked Binary */
-                    md.setAny(fetchOaiResponse(obj, session, mdf, uriInfo));
-                }
-
-                record.setMetadata(md);
-                record.setHeader(h);
+                final RecordType record = this.createRecord(session, mdf, converter.asString(subjectUri), uriInfo);
                 records.getRecord().add(record);
             }
 
@@ -950,5 +884,49 @@ public class OAIProviderService {
             e.printStackTrace();
             throw new RepositoryException(e);
         }
+    }
+
+    private RecordType createRecord(final Session session, final MetadataFormat mdf, final String s,
+                                    final UriInfo uriInfo) throws IOException, RepositoryException {
+
+        final HttpResourceConverter converter = new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone()
+                .path(FedoraNodes.class));
+        final HeaderType h = oaiFactory.createHeaderType();
+        final String subjectUri = converter.toDomain(s).getURI();
+        h.setIdentifier(subjectUri);
+
+        final FedoraObject obj =
+                this.objectService.findOrCreateObject(session, s);
+        h.setDatestamp(dateFormat.print(obj.getLastModifiedDate().getTime()));
+        // get set names this object is part of
+
+        final RdfStream triples = obj.getTriples(converter, PropertiesRdfContext.class).filter(
+                new PropertyPredicate(propertyIsPartOfSet));
+        final List<String> setNames = new ArrayList<>();
+        while (triples.hasNext()) {
+            setNames.add(triples.next().getObject().getLiteralValue().toString());
+        }
+        for (String name : setNames) {
+            final FedoraObject setObject = this.objectService.findOrCreateObject(session,
+                    setsRootPath + "/" + name);
+            final RdfStream setTriples = setObject.getTriples(converter, PropertiesRdfContext.class).filter(
+                    new PropertyPredicate(propertyHasSetSpec));
+            h.getSetSpec().add(setTriples.next().getObject().getLiteralValue().toString());
+        }
+
+        // get the metadata record from fcrepo
+        final MetadataType md = this.oaiFactory.createMetadataType();
+        if (mdf.getPrefix().equals("oai_dc")) {
+            /* generate a OAI DC reponse using the DC Generator from fcrepo4 */
+            md.setAny(generateOaiDc(obj, uriInfo));
+        } else {
+            /* generate a OAI response from the linked Binary */
+            md.setAny(fetchOaiResponse(obj, session, mdf, uriInfo));
+        }
+
+        final RecordType record = this.oaiFactory.createRecordType();
+        record.setMetadata(md);
+        record.setHeader(h);
+        return record;
     }
 }
