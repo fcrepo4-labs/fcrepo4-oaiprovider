@@ -42,7 +42,6 @@ import javax.xml.transform.stream.StreamSource;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
-import org.fcrepo.generator.dublincore.JcrPropertiesGenerator;
 import org.fcrepo.http.api.FedoraNodes;
 import org.fcrepo.http.commons.api.rdf.HttpResourceConverter;
 import org.fcrepo.http.commons.session.SessionFactory;
@@ -56,6 +55,7 @@ import org.fcrepo.kernel.services.NodeService;
 import org.fcrepo.kernel.services.ObjectService;
 import org.fcrepo.kernel.services.RepositoryService;
 import org.fcrepo.kernel.utils.iterators.RdfStream;
+import org.fcrepo.oai.dublincore.JcrPropertiesGenerator;
 import org.fcrepo.oai.rdf.PropertyPredicate;
 import org.fcrepo.oai.http.ResumptionToken;
 import org.fcrepo.oai.jersey.XmlDeclarationStrippingInputStream;
@@ -82,6 +82,7 @@ import org.openarchives.oai._2.RecordType;
 import org.openarchives.oai._2.RequestType;
 import org.openarchives.oai._2.SetType;
 import org.openarchives.oai._2.VerbType;
+import org.openarchives.oai._2_0.oai_dc.OaiDcType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -401,12 +402,10 @@ public class OAIProviderService {
         }
     }
 
-    private JAXBElement<String> generateOaiDc(final FedoraObject obj,
-            final UriInfo uriInfo) throws IOException {
+    private JAXBElement<OaiDcType> generateOaiDc(final Session session, final FedoraObject obj,
+            final UriInfo uriInfo) throws RepositoryException {
 
-        try (final InputStream src = jcrPropertiesGenerator.getStream(obj.getNode())) {
-            return new JAXBElement<String>(new QName("oai_dc"), String.class, IOUtils.toString(src));
-        }
+        return jcrPropertiesGenerator.generateDC(session, obj, uriInfo);
     }
 
     private JAXBElement<String> fetchOaiResponse(final FedoraObject obj, final Session session,
@@ -915,7 +914,7 @@ public class OAIProviderService {
         final MetadataType md = this.oaiFactory.createMetadataType();
         if (mdf.getPrefix().equals("oai_dc")) {
             /* generate a OAI DC reponse using the DC Generator from fcrepo4 */
-            md.setAny(generateOaiDc(obj, uriInfo));
+            md.setAny(generateOaiDc(session, obj, uriInfo));
         } else {
             /* generate a OAI response from the linked Binary */
             md.setAny(fetchOaiResponse(obj, session, mdf, uriInfo));

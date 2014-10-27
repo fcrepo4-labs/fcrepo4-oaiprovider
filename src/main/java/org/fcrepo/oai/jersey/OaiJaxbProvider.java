@@ -18,6 +18,7 @@ package org.fcrepo.oai.jersey;
 
 import com.sun.xml.bind.marshaller.CharacterEscapeHandler;
 import org.openarchives.oai._2.OAIPMHtype;
+import org.openarchives.oai._2_0.oai_dc.OaiDcType;
 
 import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Provider;
@@ -43,7 +44,7 @@ public class OaiJaxbProvider implements ContextResolver<Marshaller> {
      * @throws JAXBException the jAXB exception
      */
     public OaiJaxbProvider() throws JAXBException {
-        this.marshaller = JAXBContext.newInstance(OAIPMHtype.class).createMarshaller();
+        this.marshaller = JAXBContext.newInstance(OAIPMHtype.class, OaiDcType.class).createMarshaller();
         this.marshaller.setProperty("com.sun.xml.bind.marshaller.CharacterEscapeHandler", new CharacterEscapeHandler() {
             @Override
             public void escape(final char[] chars, final int start, final int len, final boolean isAttr,
@@ -64,6 +65,8 @@ public class OaiJaxbProvider implements ContextResolver<Marshaller> {
     @Override
     public Marshaller getContext(final Class<?> aClass) {
         if (aClass == OAIPMHtype.class) {
+            return this.marshaller;
+        } else if (aClass == OaiDcType.class) {
             return this.marshaller;
         }
         return null;

@@ -40,15 +40,10 @@ Currently installation involves copying files by hand to an exploded fcrepo4 web
 **The following dependencies have to be copied to Fedora 4's lib directory**
  - [JAX-B Implementation 2.2.7](http://mvnrepository.com/artifact/com.sun.xml.bind/jaxb-impl/2.2.7)
  - [JAX-B Core 2.2.7](http://mvnrepository.com/artifact/com.sun.xml.bind/jaxb-core/2.2.7)
- - [fcrepo4-labs/fcrepo-generator-dc](https://github.com/fcrepo4-labs/fcrepo-generator-dc)
  
 ```bash
 #> wget -P /path/to/fcrepo/WEB-INF/lib http://central.maven.org/maven2/com/sun/xml/bind/jaxb-impl/2.2.7/jaxb-impl-2.2.7.jar
 #> wget -P /path/to/fcrepo/WEB-INF/lib http://central.maven.org/maven2/com/sun/xml/bind/jaxb-core/2.2.7/jaxb-core-2.2.7.jar
-#> git clone https://github.com/fcrepo4-labs/fcrepo-generator-dc.git
-#> cd fcrepo-generator-dc
-#> mvn package
-#> cp target/fcrepo-generator-dc-4.0.0-beta-04-SNAPSHOT.jar /path/to/fcrepo/WEB-INF/lib/
 ```
  
 **Build and copy the oai provider to the Fedora 4's lib directory**
