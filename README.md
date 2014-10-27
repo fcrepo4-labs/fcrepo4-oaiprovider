@@ -37,7 +37,7 @@ Installation
 ------------
 Currently installation involves copying files by hand to an exploded fcrepo4 web application
 
-1. The following dependencies have to be copied to the fedora 4 web application's lib directory
+1. The following dependencies have to be copied to Fedora 4's lib directory
  - [JAX-B Implementation 2.2.7](http://mvnrepository.com/artifact/com.sun.xml.bind/jaxb-impl/2.2.7)
  - [JAX-B Core 2.2.7](http://mvnrepository.com/artifact/com.sun.xml.bind/jaxb-core/2.2.7)
  - [fcrepo4-labs/fcrepo-generator-dc](https://github.com/fcrepo4-labs/fcrepo-generator-dc)
@@ -51,7 +51,7 @@ Currently installation involves copying files by hand to an exploded fcrepo4 web
 #> cp target/fcrepo-generator-dc-4.0.0-beta-04-SNAPSHOT.jar /path/to/fcrepo/WEB-INF/lib/
 ```
  
-2. Build and copy the oai provider to the fedora 4 web application's lib directory
+2. Build and copy the oai provider to the Fedora 4's lib directory
 ```bash
 #> git clone https://github.com/fcrepo4-labs/fcrepo4-oaiprovider.git
 #> cd fcrepo4-oaiprovider
@@ -59,7 +59,7 @@ Currently installation involves copying files by hand to an exploded fcrepo4 web
 #> cp target/fcrepo-oaiprovider-4.0.0-beta-04-SNAPSHOT.jar /path/to/fcrepo/WEB-INF/lib/
 ```
 
-3. Copy the oai.xml Spring configuration to fedora 4's config directory
+3. Copy the oai.xml Spring configuration to Fedora 4's config directory
 
 ```bash
 #> cp fcrepo4-oaiprovider/src/main/resources/spring/oai.xml /path/to/fcrepo/WEB-INF/classes/spring/
