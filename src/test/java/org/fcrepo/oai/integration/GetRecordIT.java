@@ -59,6 +59,7 @@ public class GetRecordIT extends AbstractOAIProviderIT {
     public void testGetOAIPremisRecord() throws Exception {
         String objId = "oai-test-" + RandomStringUtils.randomAlphabetic(8);
         String binaryPath = "premis-binary-" + RandomStringUtils.randomAlphabetic(8);
+        
         createBinaryObject(binaryPath, this.getClass().getClassLoader().getResourceAsStream("test-data/premis.xml"));
         createFedoraObjectWithOaiLink(objId, binaryPath, "http://fedora.info/definitions/v4/config#hasOaiPremisRecord");
 
@@ -76,6 +77,7 @@ public class GetRecordIT extends AbstractOAIProviderIT {
     public void testGetOAIPremisRecordWithPath() throws Exception {
         String objId = "oai-test-" + RandomStringUtils.randomAlphabetic(8);
         String binaryPath = "foo/bar/premis-binary-" + RandomStringUtils.randomAlphabetic(8);
+
         createBinaryObject(binaryPath, this.getClass().getClassLoader().getResourceAsStream("test-data/premis.xml"));
         createFedoraObjectWithOaiLink(objId, binaryPath, "http://fedora.info/definitions/v4/config#hasOaiPremisRecord");
 
@@ -93,6 +95,25 @@ public class GetRecordIT extends AbstractOAIProviderIT {
     public void testGetOAIMarc21Record() throws Exception {
         String objId = "oai-test-" + RandomStringUtils.randomAlphabetic(8);
         String binaryPath = "oai-data/marc21-binary-" + RandomStringUtils.randomAlphabetic(8);
+
+        createBinaryObject(binaryPath, this.getClass().getClassLoader().getResourceAsStream("test-data/marc21.xml"));
+        createFedoraObjectWithOaiLink(objId, binaryPath, "http://fedora.info/definitions/v4/config#hasOaiMarc21Record");
+
+        HttpResponse resp = getOAIPMHResponse(VerbType.GET_RECORD.value(), objId, "marc21", null, null, null);
+        assertEquals(200, resp.getStatusLine().getStatusCode());
+        OAIPMHtype oai =
+                ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
+        assertEquals(0, oai.getError().size());
+        assertNotNull(oai.getGetRecord().getRecord().getMetadata());
+        assertNotNull(oai.getGetRecord().getRecord().getMetadata().getAny());
+        assertEquals(objId, oai.getGetRecord().getRecord().getHeader().getIdentifier());
+    }
+
+    @Test
+    public void testGetOAIMarc21RecordWithObjectPath() throws Exception {
+        String objId = "foo/oai-test-" + RandomStringUtils.randomAlphabetic(8);
+        String binaryPath = "oai-data/marc21-binary-" + RandomStringUtils.randomAlphabetic(8);
+
         createBinaryObject(binaryPath, this.getClass().getClassLoader().getResourceAsStream("test-data/marc21.xml"));
         createFedoraObjectWithOaiLink(objId, binaryPath, "http://fedora.info/definitions/v4/config#hasOaiMarc21Record");
 
