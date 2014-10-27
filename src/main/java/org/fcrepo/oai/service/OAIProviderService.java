@@ -22,7 +22,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
@@ -305,7 +304,8 @@ public class OAIProviderService {
             final String identifier) throws RepositoryException {
 
         final ListMetadataFormatsType listMetadataFormats = oaiFactory.createListMetadataFormatsType();
-        final HttpResourceConverter converter = new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
+        final HttpResourceConverter converter = new HttpResourceConverter(session, uriInfo.getBaseUriBuilder()
+                .clone().path(FedoraNodes.class));
 
         /* check which formats are available on top of oai_dc for this object */
         if (identifier != null && !identifier.isEmpty()) {
@@ -322,7 +322,8 @@ public class OAIProviderService {
                     if (mdf.getPrefix().equals("oai_dc")) {
                         listMetadataFormats.getMetadataFormat().add(mdf.asMetadataFormatType());
                     } else {
-                        final RdfStream triples = obj.getTriples(converter, PropertiesRdfContext.class).filter(new PropertyPredicate(mdf.getPropertyName()));
+                        final RdfStream triples = obj.getTriples(converter, PropertiesRdfContext.class).filter(
+                                new PropertyPredicate(mdf.getPropertyName()));
                         if (triples.hasNext()) {
                             listMetadataFormats.getMetadataFormat().add(mdf.asMetadataFormatType());
                         }
@@ -429,7 +430,7 @@ public class OAIProviderService {
         final String recordPath = triples.next().getObject().getLiteralValue().toString();
         final FedoraBinary bin = binaryService.findOrCreateBinary(session,"/" + recordPath);
 
-        try (final InputStream src = bin.getContent()){
+        try (final InputStream src = bin.getContent()) {
             return new JAXBElement<String>(new QName(format.getPrefix()), String.class, IOUtils.toString(src));
         }
     }
