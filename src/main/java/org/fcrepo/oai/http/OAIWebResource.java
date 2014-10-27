@@ -82,12 +82,12 @@ public class OAIWebResource {
     /**
      * Gets OAI response.
      *
-     * @param verb the verb
-     * @param identifier the identifier
-     * @param metadataPrefix the metadata prefix
-     * @param from the from
-     * @param until the until
-     * @param set the set
+     * @param verbParam the verb
+     * @param identifierParam the identifier
+     * @param metadataPrefixParam the metadata prefix
+     * @param fromParam the from
+     * @param untilParam the until
+     * @param setParam the set
      * @param resumptionToken the resumption token
      * @param uriInfo the uri info
      * @return the oAI response
@@ -96,22 +96,27 @@ public class OAIWebResource {
     @GET
     @Produces(MediaType.TEXT_XML)
     public Object getOAIResponse(
-            @QueryParam("verb")  String verb,
-            @QueryParam("identifier")  String identifier,
-            @QueryParam("metadataPrefix") String metadataPrefix,
-            @QueryParam("from")  String from,
-            @QueryParam("until")  String until,
-            @QueryParam("set")  String set,
-            @QueryParam("resumptionToken")  String resumptionToken,
-            @Context  UriInfo uriInfo) throws RepositoryException {
+            final @QueryParam("verb") String verbParam, final @QueryParam("identifier") String identifierParam,
+            final @QueryParam("metadataPrefix") String metadataPrefixParam, final @QueryParam("from") String fromParam,
+            final @QueryParam("until") String untilParam, final @QueryParam("set") String setParam,
+            final @QueryParam("resumptionToken") String resumptionToken, final @Context UriInfo uriInfo)
+            throws RepositoryException {
+
         int offset = 0;
 
+        final String verb;
+        final String from;
+        final String until;
+        final String set;
+        final String metadataPrefix;
+        final String identifier;
 
-        /* If there's a resumption token present the data provided in the
-            base64 encoded token is used to generate the request */
         if (resumptionToken != null && !resumptionToken.isEmpty()) {
+            /* If there's a resumption token present the data provided in the
+                base64 encoded token is used to generate the request */
             try {
                 final ResumptionToken token = OAIProviderService.decodeResumptionToken(resumptionToken);
+                identifier = null;
                 verb = token.getVerb();
                 from = token.getFrom();
                 until = token.getUntil();
@@ -122,6 +127,14 @@ public class OAIWebResource {
                 return providerService.error(null, null, null, OAIPMHerrorcodeType.BAD_RESUMPTION_TOKEN,
                         "Resumption token is invalid");
             }
+        } else {
+            /* otherwise just read the query params */
+            identifier = identifierParam;
+            verb = verbParam;
+            from = fromParam;
+            until = untilParam;
+            set = setParam;
+            metadataPrefix = metadataPrefixParam;
         }
 
         /* decide what to do depending on the verb passed */
@@ -200,7 +213,7 @@ public class OAIWebResource {
                 "Unknown verb '" + verb + "'");
     }
 
-    private void verifyEmpty(String... data) throws IllegalArgumentException {
+    private void verifyEmpty(final String... data) throws IllegalArgumentException {
         for (String s : data) {
             if (s != null && !s.isEmpty()) {
                 throw new IllegalArgumentException("Wrong argument for method");

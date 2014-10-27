@@ -146,7 +146,7 @@ public class OAIProviderService {
      *
      * @param propertyHasSetSpec the property has set spec
      */
-    public void setPropertyHasSetSpec(String propertyHasSetSpec) {
+    public void setPropertyHasSetSpec(final String propertyHasSetSpec) {
         this.propertyHasSetSpec = propertyHasSetSpec;
     }
 
@@ -155,7 +155,7 @@ public class OAIProviderService {
      *
      * @param propertySetName the property set name
      */
-    public void setPropertySetName(String propertySetName) {
+    public void setPropertySetName(final String propertySetName) {
         this.propertySetName = propertySetName;
     }
 
@@ -164,7 +164,7 @@ public class OAIProviderService {
      *
      * @param propertyHasSets the property has sets
      */
-    public void setPropertyHasSets(String propertyHasSets) {
+    public void setPropertyHasSets(final String propertyHasSets) {
         this.propertyHasSets = propertyHasSets;
     }
 
@@ -173,7 +173,7 @@ public class OAIProviderService {
      *
      * @param maxListSize the max list size
      */
-    public void setMaxListSize(int maxListSize) {
+    public void setMaxListSize(final int maxListSize) {
         this.maxListSize = maxListSize;
     }
 
@@ -182,7 +182,7 @@ public class OAIProviderService {
      *
      * @param propertyIsPartOfSet the property is part of set
      */
-    public void setPropertyIsPartOfSet(String propertyIsPartOfSet) {
+    public void setPropertyIsPartOfSet(final String propertyIsPartOfSet) {
         this.propertyIsPartOfSet = propertyIsPartOfSet;
     }
 
@@ -191,7 +191,7 @@ public class OAIProviderService {
      *
      * @param setsRootPath the sets root path
      */
-    public void setSetsRootPath(String setsRootPath) {
+    public void setSetsRootPath(final String setsRootPath) {
         this.setsRootPath = setsRootPath;
     }
 
@@ -200,7 +200,7 @@ public class OAIProviderService {
      *
      * @param setsEnabled the sets enabled
      */
-    public void setSetsEnabled(boolean setsEnabled) {
+    public void setSetsEnabled(final boolean setsEnabled) {
         this.setsEnabled = setsEnabled;
     }
 
@@ -209,7 +209,7 @@ public class OAIProviderService {
      *
      * @param identifyPath the identify path
      */
-    public void setIdentifyPath(String identifyPath) {
+    public void setIdentifyPath(final String identifyPath) {
         this.identifyPath = identifyPath;
     }
 
@@ -218,7 +218,7 @@ public class OAIProviderService {
      *
      * @param autoGenerateOaiDc the auto generate oai dc
      */
-    public void setAutoGenerateOaiDc(boolean autoGenerateOaiDc) {
+    public void setAutoGenerateOaiDc(final boolean autoGenerateOaiDc) {
         this.autoGenerateOaiDc = autoGenerateOaiDc;
     }
 
@@ -227,7 +227,7 @@ public class OAIProviderService {
      *
      * @param metadataFormats the metadata formats
      */
-    public void setMetadataFormats(Map<String, MetadataFormat> metadataFormats) {
+    public void setMetadataFormats(final Map<String, MetadataFormat> metadataFormats) {
         this.metadataFormats = metadataFormats;
     }
 
@@ -239,7 +239,7 @@ public class OAIProviderService {
     @PostConstruct
     public void init() throws RepositoryException {
         /* check if set root node exists */
-        Session session = sessionFactory.getInternalSession();
+        final Session session = sessionFactory.getInternalSession();
         if (!this.nodeService.exists(session, setsRootPath)) {
             this.objectService.findOrCreateObject(session, setsRootPath);
         }
@@ -267,7 +267,7 @@ public class OAIProviderService {
      * @throws RepositoryException the repository exception
      * @throws JAXBException the jAXB exception
      */
-    public JAXBElement<OAIPMHtype> identify(final Session session, UriInfo uriInfo) throws RepositoryException,
+    public JAXBElement<OAIPMHtype> identify(final Session session, final UriInfo uriInfo) throws RepositoryException,
             JAXBException {
         if (!this.nodeService.exists(session, identifyPath)) {
             return error(VerbType.IDENTIFY, null, null, OAIPMHerrorcodeType.BAD_ARGUMENT,
@@ -379,8 +379,9 @@ public class OAIProviderService {
         }
     }
 
-    private JAXBElement<OAIPMHtype> generateOaiDc(final Session session, String identifier, UriInfo uriInfo)
-            throws RepositoryException {
+    private JAXBElement<OAIPMHtype> generateOaiDc(final Session session, final String identifier,
+            final UriInfo uriInfo) throws RepositoryException {
+
         final FedoraObject obj = this.objectService.findOrCreateObject(session, "/" + identifier);
 
         final OAIPMHtype oai = oaiFactory.createOAIPMHtype();
@@ -417,7 +418,8 @@ public class OAIProviderService {
         return this.oaiFactory.createOAIPMH(oai);
     }
 
-    private JAXBElement<OAIPMHtype> fetchOaiResponse(Session session, String identifier, MetadataFormat format) {
+    private JAXBElement<OAIPMHtype> fetchOaiResponse(final Session session, final String identifier,
+            final MetadataFormat format) {
         return null;
     }
 
@@ -431,8 +433,8 @@ public class OAIProviderService {
      * @param msg the msg
      * @return the jAXB element
      */
-    public static JAXBElement<OAIPMHtype> error(VerbType verb, String identifier, String metadataPrefix,
-            OAIPMHerrorcodeType errorCode, String msg) {
+    public static JAXBElement<OAIPMHtype> error(final VerbType verb, final String identifier,
+            final String metadataPrefix, final OAIPMHerrorcodeType errorCode, final String msg) {
         final OAIPMHtype oai = oaiFactory.createOAIPMHtype();
         final RequestType req = oaiFactory.createRequestType();
         req.setVerb(verb);
@@ -460,8 +462,9 @@ public class OAIProviderService {
      * @return the jAXB element
      * @throws RepositoryException the repository exception
      */
-    public JAXBElement<OAIPMHtype> listIdentifiers(Session session, UriInfo uriInfo, String metadataPrefix,
-                                                   String from, String until, String set, int offset)
+    public JAXBElement<OAIPMHtype> listIdentifiers(final Session session, final UriInfo uriInfo,
+                                                   final String metadataPrefix, final String from, final String until,
+                                                   final String set, final int offset)
             throws RepositoryException {
 
         if (metadataPrefix == null) {
@@ -546,7 +549,7 @@ public class OAIProviderService {
                 h.setDatestamp(dateFormat.print(obj.getLastModifiedDate().getTime()));
 
 
-                RdfStream triples = obj.getTriples(converter, PropertiesRdfContext.class).filter(
+                final RdfStream triples = obj.getTriples(converter, PropertiesRdfContext.class).filter(
                         new PropertyPredicate(propertyIsPartOfSet));
                 final List<String> setNames = new ArrayList<>();
                 while (triples.hasNext()) {
@@ -591,23 +594,15 @@ public class OAIProviderService {
      * @return the string
      * @throws UnsupportedEncodingException the unsupported encoding exception
      */
-    public static String encodeResumptionToken(String verb, String metadataPrefix, String from, String until,
-            String set, int offset) throws UnsupportedEncodingException {
-        if (from == null) {
-            from = "";
-        }
-        if (until == null) {
-            until = "";
-        }
-        if (set == null) {
-            set = "";
-        }
-        String[] data = new String[] {
+    public static String encodeResumptionToken(final String verb, final String metadataPrefix, final String from,
+            final String until, final String set, final int offset) throws UnsupportedEncodingException {
+
+        final String[] data = new String[] {
             urlEncode(verb),
             urlEncode(metadataPrefix),
-            urlEncode(from),
-            urlEncode(until),
-            urlEncode(set),
+            urlEncode(from != null ? from : ""),
+            urlEncode(until != null ? until : ""),
+            urlEncode(set != null ? set : ""),
             urlEncode(String.valueOf(offset))
         };
         return Base64.encodeBase64URLSafeString(StringUtils.join(data, ':').getBytes("UTF-8"));
@@ -620,7 +615,7 @@ public class OAIProviderService {
      * @return the string
      * @throws UnsupportedEncodingException the unsupported encoding exception
      */
-    public static String urlEncode(String value) throws UnsupportedEncodingException {
+    public static String urlEncode(final String value) throws UnsupportedEncodingException {
         return URLEncoder.encode(value, "UTF-8");
     }
 
@@ -631,7 +626,7 @@ public class OAIProviderService {
      * @return the string
      * @throws UnsupportedEncodingException the unsupported encoding exception
      */
-    public static String urlDecode(String value) throws UnsupportedEncodingException {
+    public static String urlDecode(final String value) throws UnsupportedEncodingException {
         return URLDecoder.decode(value, "UTF-8");
     }
 
@@ -642,8 +637,8 @@ public class OAIProviderService {
      * @return the resumption token
      * @throws UnsupportedEncodingException the unsupported encoding exception
      */
-    public static ResumptionToken decodeResumptionToken(String token) throws UnsupportedEncodingException {
-        String[] data = StringUtils.splitPreserveAllTokens(new String(Base64.decodeBase64(token)), ':');
+    public static ResumptionToken decodeResumptionToken(final String token) throws UnsupportedEncodingException {
+        final String[] data = StringUtils.splitPreserveAllTokens(new String(Base64.decodeBase64(token)), ':');
         final String verb = urlDecode(data[0]);
         final String metadataPrefix = urlDecode(data[1]);
         final String from = urlDecode(data[2]);
@@ -662,7 +657,8 @@ public class OAIProviderService {
      * @return the jAXB element
      * @throws RepositoryException the repository exception
      */
-    public JAXBElement<OAIPMHtype> listSets(Session session, UriInfo uriInfo, int offset) throws RepositoryException {
+    public JAXBElement<OAIPMHtype> listSets(final Session session, final UriInfo uriInfo, final int offset)
+            throws RepositoryException {
         final HttpResourceConverter converter =
                 new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
         try {
@@ -691,7 +687,7 @@ public class OAIProviderService {
                 final ResultSet setResult = setJql.execute();
                 while (setResult.hasNext()) {
                     final SetType set = oaiFactory.createSetType();
-                    QuerySolution sol = setResult.next();
+                    final QuerySolution sol = setResult.next();
                     set.setSetName(sol.get("name").asLiteral().getString());
                     set.setSetSpec(sol.get("spec").asLiteral().getString());
                     sets.getSet().add(set);
@@ -714,7 +710,8 @@ public class OAIProviderService {
      * @return the string
      * @throws RepositoryException the repository exception
      */
-    public String createSet(Session session, UriInfo uriInfo, InputStream src) throws RepositoryException {
+    public String createSet(final Session session, final UriInfo uriInfo, final InputStream src)
+            throws RepositoryException {
         final HttpResourceConverter converter =
                 new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
         try {
@@ -733,7 +730,7 @@ public class OAIProviderService {
             }
             final FedoraObject setObject = this.objectService.findOrCreateObject(session, setsRootPath + "/" + setId);
 
-            StringBuilder sparql =
+            final StringBuilder sparql =
                     new StringBuilder("INSERT DATA {<" + converter.toDomain(setRoot.getPath()) + "> <" +
                             propertyHasSets + "> <" + converter.toDomain(setObject.getPath()) + ">}");
             setRoot.updateProperties(converter, sparql.toString(), new RdfStream());
@@ -757,12 +754,12 @@ public class OAIProviderService {
         }
     }
 
-    private String getSetId(SetType set) throws RepositoryException {
+    private String getSetId(final SetType set) throws RepositoryException {
         if (set.getSetSpec() == null) {
             throw new RepositoryException("SetSpec can not be empty");
         }
         String id = set.getSetSpec();
-        int colonPos = id.indexOf(':');
+        final int colonPos = id.indexOf(':');
         while (colonPos > 0) {
             id = id.substring(colonPos + 1);
         }
@@ -782,8 +779,9 @@ public class OAIProviderService {
      * @return the jAXB element
      * @throws RepositoryException the repository exception
      */
-    public JAXBElement<OAIPMHtype> listRecords(Session session, UriInfo uriInfo, String metadataPrefix, String from,
-                                               String until, String set, int offset) throws RepositoryException {
+    public JAXBElement<OAIPMHtype> listRecords(final Session session, final UriInfo uriInfo,
+                                               final String metadataPrefix, final String from, final String until,
+                                               final String set, final int offset) throws RepositoryException {
 
         final HttpResourceConverter converter =
                 new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
@@ -865,7 +863,7 @@ public class OAIProviderService {
                 h.setDatestamp(dateFormat.print(obj.getLastModifiedDate().getTime()));
                 // get set names this object is part of
 
-                RdfStream triples = obj.getTriples(converter, PropertiesRdfContext.class).filter(
+                final RdfStream triples = obj.getTriples(converter, PropertiesRdfContext.class).filter(
                         new PropertyPredicate(propertyIsPartOfSet));
                 final List<String> setNames = new ArrayList<>();
                 while (triples.hasNext()) {

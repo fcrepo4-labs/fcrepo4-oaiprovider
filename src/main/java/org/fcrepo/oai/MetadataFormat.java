@@ -26,29 +26,13 @@ import org.openarchives.oai._2.ObjectFactory;
  */
 public class MetadataFormat {
 
-    private final String prefix;
+    private String prefix;
 
-    private final String schemaUrl;
+    private String schemaUrl;
 
-    private final String namespace;
+    private String namespace;
 
-    private final String propertyName;
-
-    /**
-     * Instantiates a new Metadata format.
-     *
-     * @param prefix the prefix
-     * @param schemaUrl the schema url
-     * @param namespace the namespace
-     * @param propertyName the property name
-     */
-    public MetadataFormat(final String prefix, final String schemaUrl, final String namespace,
-            final String propertyName) {
-        this.prefix = prefix;
-        this.schemaUrl = schemaUrl;
-        this.namespace = namespace;
-        this.propertyName = propertyName;
-    }
+    private String propertyName;
 
     /**
      * Get the property name used for the metadata format
@@ -99,5 +83,41 @@ public class MetadataFormat {
         type.setMetadataPrefix(prefix);
         return type;
 
+    }
+
+    /**
+     * Sets prefix.
+     *
+     * @param prefix the prefix
+     */
+    public void setPrefix(final String prefix) {
+        this.prefix = prefix;
+    }
+
+    /**
+     * Sets schema url.
+     *
+     * @param schemaUrl the schema url
+     */
+    public void setSchemaUrl(final String schemaUrl) {
+        this.schemaUrl = schemaUrl;
+    }
+
+    /**
+     * Sets namespace.
+     *
+     * @param namespace the namespace
+     */
+    public void setNamespace(final String namespace) {
+        this.namespace = namespace;
+    }
+
+    /**
+     * Sets property name.
+     *
+     * @param propertyName the property name
+     */
+    public void setPropertyName(final String propertyName) {
+        this.propertyName = propertyName;
     }
 }
