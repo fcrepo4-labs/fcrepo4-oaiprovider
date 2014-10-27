@@ -36,6 +36,7 @@ import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.namespace.QName;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
@@ -155,11 +156,38 @@ public abstract class AbstractOAIProviderIT {
         final HttpResponse response = client.execute(post);
         assertEquals(CREATED.getStatusCode(), response.getStatusLine().getStatusCode());
         post.releaseConnection();
+    }
 
+    protected void createFedoraObjectWithOaiLink(final String pid, final String binaryId) throws IOException {
+        final HttpPost post = postObjMethod("/");
+        if (pid.length() > 0) {
+            post.addHeader("Slug", pid);
+        }
+        StringBuilder sparql = new StringBuilder("INSERT {")
+                .append("<> ")
+                .append("<http://fedora.info/definitions/v4/config#hasOaiPremisRecord> ")
+                .append("\"").append(binaryId).append("\" .")
+                .append("} WHERE {}");
+        post.setEntity(new StringEntity(sparql.toString()));
+        post.addHeader("Content-Type", "application/sparql-update");
+
+        final HttpResponse response = client.execute(post);
+        assertEquals(CREATED.getStatusCode(), response.getStatusLine().getStatusCode());
+        post.releaseConnection();
     }
 
     protected void createFedoraObject(final String pid) throws IOException {
         this.createFedoraObject(pid, null);
+    }
+
+
+
+    protected void createBinaryObject(final String binaryId, final InputStream src) throws IOException{
+        final HttpPut put = new HttpPut(serverAddress + "/" + binaryId);
+        put.setEntity(new StringEntity(IOUtils.toString(src)));
+        final HttpResponse resp = this.client.execute(put);
+        assertEquals(201, resp.getStatusLine().getStatusCode());
+        put.releaseConnection();
     }
 
     public HttpResponse getOAIPMHResponse(String tokenData) throws IOException, JAXBException {
