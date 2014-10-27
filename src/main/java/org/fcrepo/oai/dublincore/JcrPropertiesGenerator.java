@@ -47,7 +47,8 @@ public class JcrPropertiesGenerator {
      * @param obj the obj
      * @return the jAXB element
      */
-    public JAXBElement<OaiDcType> generateDC(final Session session, final FedoraObject obj, final UriInfo uriInfo) throws RepositoryException{
+    public JAXBElement<OaiDcType> generateDC(final Session session, final FedoraObject obj, final UriInfo uriInfo)
+            throws RepositoryException {
 
         final HttpResourceConverter converter = new HttpResourceConverter(session, uriInfo.getBaseUriBuilder()
                 .clone().path(FedoraNodes.class));
