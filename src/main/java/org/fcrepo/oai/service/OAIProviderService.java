@@ -48,11 +48,13 @@ import org.fcrepo.http.commons.api.rdf.HttpResourceConverter;
 import org.fcrepo.http.commons.session.SessionFactory;
 import org.fcrepo.kernel.FedoraBinary;
 import org.fcrepo.kernel.FedoraObject;
+import org.fcrepo.kernel.FedoraResource;
 import org.fcrepo.kernel.RdfLexicon;
 import org.fcrepo.kernel.impl.rdf.impl.PropertiesRdfContext;
 import org.fcrepo.kernel.services.BinaryService;
 import org.fcrepo.kernel.services.NodeService;
 import org.fcrepo.kernel.services.ObjectService;
+import org.fcrepo.kernel.services.RepositoryService;
 import org.fcrepo.kernel.utils.iterators.RdfStream;
 import org.fcrepo.oai.rdf.PropertyPredicate;
 import org.fcrepo.oai.http.ResumptionToken;
@@ -86,8 +88,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
-import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.Resource;
 
 /**
@@ -104,10 +104,6 @@ public class OAIProviderService {
     private final DatatypeFactory dataFactory;
 
     private final Unmarshaller unmarshaller;
-
-    private final Model rdfModel = ModelFactory.createDefaultModel();
-
-    private String identifyPath;
 
     private String setsRootPath;
 
@@ -140,6 +136,9 @@ public class OAIProviderService {
 
     @Autowired
     private ObjectService objectService;
+
+    @Autowired
+    private RepositoryService repositoryService;
 
     @Autowired
     private JcrPropertiesGenerator jcrPropertiesGenerator;
@@ -208,15 +207,6 @@ public class OAIProviderService {
     }
 
     /**
-     * Sets identify path.
-     *
-     * @param identifyPath the identify path
-     */
-    public void setIdentifyPath(final String identifyPath) {
-        this.identifyPath = identifyPath;
-    }
-
-    /**
      * Sets auto generate oai dc.
      *
      * @param autoGenerateOaiDc the auto generate oai dc
@@ -272,13 +262,19 @@ public class OAIProviderService {
      */
     public JAXBElement<OAIPMHtype> identify(final Session session, final UriInfo uriInfo) throws RepositoryException,
             JAXBException {
-        if (!this.nodeService.exists(session, identifyPath)) {
-            return error(VerbType.IDENTIFY, null, null, OAIPMHerrorcodeType.BAD_ARGUMENT,
-                    "Identify response does not exists");
-        }
-        final FedoraBinary binary = this.binaryService.findOrCreateBinary(session, identifyPath);
-        final InputStream data = binary.getContent();
-        final IdentifyType id = this.unmarshaller.unmarshal(new StreamSource(data), IdentifyType.class).getValue();
+
+        final FedoraResource root = this.nodeService.getObject(session, "/");
+
+        final IdentifyType id = this.oaiFactory.createIdentifyType();
+        // TODO: Need real values here from the root node?
+        id.setBaseURL(uriInfo.getBaseUri().toASCIIString());
+        id.setEarliestDatestamp("INSTALL_DATE");
+        id.setProtocolVersion("2.0");
+        id.setRepositoryName("Fedora 4");
+        id.getAdminEmail().add(0,"admin@example.com");
+        final DescriptionType desc = this.oaiFactory.createDescriptionType();
+        desc.setAny(new JAXBElement<String>(new QName("general"), String.class, "An example repository description"));
+        id.getDescription().add(0, desc);
 
         final RequestType req = oaiFactory.createRequestType();
         req.setVerb(VerbType.IDENTIFY);

@@ -18,7 +18,6 @@
 
     <bean name="oaiProviderService" class="org.fcrepo.oai.service.OAIProviderService">
         <property name="autoGenerateOaiDc" value="true"/>
-        <property name="identifyPath" value="/oai_identify"/>
         <property name="maxListSize" value="5"/>
         <property name="setsEnabled" value="true"/>
         <property name="setsRootPath" value="/oai/setspec"/>

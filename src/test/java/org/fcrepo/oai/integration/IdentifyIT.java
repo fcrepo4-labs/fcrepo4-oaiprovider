@@ -37,40 +37,6 @@ import org.openarchives.oai._2.VerbType;
 
 public class IdentifyIT extends AbstractOAIProviderIT {
 
-    @PostConstruct
-    public void initTests() throws Exception {
-        /* Check and/or add the default Identify response */
-        if (!defaultIdentityResponseExists()) {
-            IdentifyType id = this.oaiFactory.createIdentifyType();
-            id.setRepositoryName("Fedora 4 Test Instance");
-            id.setBaseURL(this.serverAddress);
-
-            HttpPost post = new HttpPost(this.serverAddress);
-            StringWriter data = new StringWriter();
-            this.marshaller.marshal(new JAXBElement<IdentifyType>(new QName("Identify"), IdentifyType.class, id),
-                    data);
-            post.setEntity(new StringEntity(data.toString()));
-            post.addHeader("Content-Type", "application/octet-stream");
-            post.addHeader("Slug", "oai_identify");
-            try {
-                HttpResponse resp = this.client.execute(post);
-                assertEquals(201, resp.getStatusLine().getStatusCode());
-            } finally {
-                post.releaseConnection();
-            }
-        }
-    }
-
-    protected boolean defaultIdentityResponseExists() throws IOException {
-        HttpGet get = new HttpGet(serverAddress + "/oai_identify/fcr:content");
-        try {
-            HttpResponse resp = this.client.execute(get);
-            return resp.getStatusLine().getStatusCode() == 200;
-        } finally {
-            get.releaseConnection();
-        }
-    }
-
     @Test
     @SuppressWarnings("unchecked")
     public void testIdentify() throws Exception {
@@ -82,7 +48,7 @@ public class IdentifyIT extends AbstractOAIProviderIT {
         assertNotNull(oaipmh.getIdentify());
         assertNotNull(oaipmh.getRequest());
         assertEquals(VerbType.IDENTIFY.value(), oaipmh.getRequest().getVerb().value());
-        assertEquals("Fedora 4 Test Instance", oaipmh.getIdentify().getRepositoryName());
+        assertEquals("Fedora 4", oaipmh.getIdentify().getRepositoryName());
         assertEquals(serverAddress, oaipmh.getIdentify().getBaseURL());
     }
 }
