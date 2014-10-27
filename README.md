@@ -13,20 +13,20 @@ For Set creation an endpoint at `/oai/sets` is exposed which accepts HTTP POST r
 
 The provider depends on the [fcrepo-dc-generator](https://github.com/fcrepo4-labs/fcrepo-generator-dc) for creating a default oai_dc responses.
 
-For advanced use-cases the provider depends on links to Datastreams and OAI Set objects to generate OAI responses.
-A graph linking a Fedora Object to it's OAI DC Datastream should look like this:
+For advanced use-cases the provider depends on links to FedoraBinary instances and OAI Set objects to generate OAI responses.
+A graph linking a Fedora Object to it's OAI metadata should look like this:
  
                                                  +----------+
                                                  | MyObject | 
                                                  +----------+
                                                  /          \
                                                 /            \
-                                        hasOaiDCRecord   isPartOfOaiSet
+                                     hasOaiMarc21Record   isPartOfOaiSet
                                               /                \
                                              /                  \
-                                +-------------------+      +----------+
-                                | MyOaiDCDatastream |      |   MySet  |
-                                +-------------------+      +----------+
+                                   +----------------+      +----------+
+                                   | MyMarc21Binary |      |   MySet  |
+                                   +----------------+      +----------+
                                 
 Additional Metadata record types
 --------------------------------
