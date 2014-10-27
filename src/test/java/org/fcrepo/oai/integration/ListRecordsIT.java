@@ -24,6 +24,7 @@ import javax.xml.bind.JAXBElement;
 
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.http.HttpResponse;
+import org.apache.http.util.EntityUtils;
 import org.junit.Test;
 import org.openarchives.oai._2.OAIPMHerrorcodeType;
 import org.openarchives.oai._2.OAIPMHtype;

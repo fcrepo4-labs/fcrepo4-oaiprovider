@@ -16,6 +16,7 @@
 package org.fcrepo.oai.dublincore;
 
 import com.hp.hpl.jena.graph.Triple;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.fcrepo.http.api.FedoraNodes;
 import org.fcrepo.http.commons.api.rdf.HttpResourceConverter;
 import org.fcrepo.kernel.FedoraObject;
@@ -55,27 +56,31 @@ public class JcrPropertiesGenerator {
         final OaiDcType oaidc = this.oaiDcFactory.createOaiDcType();
 
         final ElementType valId = this.dcFactory.createElementType();
-        valId.setValue(converter.toDomain(obj.getPath()).getURI());
+        valId.setValue(escape(converter.toDomain(obj.getPath()).getURI()));
         oaidc.getTitleOrCreatorOrSubject().add(this.dcFactory.createIdentifier(valId));
 
         final ElementType valCreated = this.dcFactory.createElementType();
-        valCreated.setValue(obj.getCreatedDate().toString());
+        valCreated.setValue(escape(obj.getCreatedDate().toString()));
         oaidc.getTitleOrCreatorOrSubject().add(this.dcFactory.createDate(valCreated));
 
         final ElementType valCreator = this.dcFactory.createElementType();
-        valCreator.setValue(obj.getProperty("jcr:createdBy").getValue().getString());
+        valCreator.setValue(escape(obj.getProperty("jcr:createdBy").getValue().getString()));
         oaidc.getTitleOrCreatorOrSubject().add(this.dcFactory.createCreator(valCreator));
 
         final RdfStream triples = obj.getTriples(converter, PropertiesRdfContext.class);
         while (triples.hasNext()) {
             final ElementType valRel = this.dcFactory.createElementType();
             final Triple triple = triples.next();
-            valRel.setValue(triple.getPredicate().toString() + " " + triple.getObject().toString());
+            valRel.setValue(escape(triple.getPredicate().toString() + " " + triple.getObject().toString()));
             oaidc.getTitleOrCreatorOrSubject().add(this.dcFactory.createRelation(valRel));
         }
 
         oaidc.getTitleOrCreatorOrSubject().add(this.dcFactory.createSubject(valId));
 
         return this.oaiDcFactory.createDc(oaidc);
+    }
+
+    private String escape(final String orig) {
+        return StringEscapeUtils.escapeXml(orig);
     }
 }

@@ -202,7 +202,7 @@ public class OAIWebResource {
         if (verb.equals(LIST_RECORDS.value())) {
             try {
                 verifyEmpty(identifier);
-                return providerService.listRecords(this.session, uriInfo, metadataPrefix, from, until, set, offset);
+                return  providerService.listRecords(this.session, uriInfo, metadataPrefix, from, until, set, offset);
             } catch (IllegalArgumentException e) {
                 return providerService.error(VerbType.LIST_SETS, identifier, metadataPrefix,
                         OAIPMHerrorcodeType.BAD_ARGUMENT, "Invalid arguments");
