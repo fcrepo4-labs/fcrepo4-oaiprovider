@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/fcrepo4-labs/fcrepo4-oaiprovider.svg?branch=master)](https://travis-ci.org/frpeo4-labs/fcrepo4-oaiprovider)
+[![Build Status](https://travis-ci.org/fcrepo4-labs/fcrepo4-oaiprovider.svg?branch=master)](https://travis-ci.org/fcrepo4-labs/fcrepo4-oaiprovider)
 
 OAI Provider for Fedora 4
 =========================
