@@ -56,16 +56,16 @@ Currently installation involves copying files by hand to an exploded fcrepo4 web
 #> git clone https://github.com/fcrepo4-labs/fcrepo4-oaiprovider.git
 #> cd fcrepo4-oaiprovider
 #> mvn package
-#> cp target/fcrepo4-oaiprovider-4.0.0-beta-04-SNAPSHOT.jar /path/to/fcrepo/WEB-INF/lib/
+#> cp target/fcrepo-oaiprovider-4.0.0-beta-04-SNAPSHOT.jar /path/to/fcrepo/WEB-INF/lib/
 ```
 
 3. Copy the oai.xml Spring configuration to fedora 4's config directory
 
 ```bash
-#> cp fcrepo4-oaiprovider/src/main/resources/oai.xml /path/to/fcrepo/WEB-INF/classes/spring/
+#> cp fcrepo4-oaiprovider/src/main/resources/spring/oai.xml /path/to/fcrepo/WEB-INF/classes/spring/
 ```
 
-4. Add `<import resource="spring/oai.xml"/>` to Fedora 4's master.xml configuration file
+4. Add `<import resource="classpath:/spring/oai.xml"/>` to Fedora 4's master.xml configuration file
 
 ```bash
 #> vim /path/to/fcrepo/WEB-INF/classes/spring/master.xml
