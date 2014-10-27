@@ -158,14 +158,16 @@ public abstract class AbstractOAIProviderIT {
         post.releaseConnection();
     }
 
-    protected void createFedoraObjectWithOaiLink(final String pid, final String binaryId) throws IOException {
+    protected void createFedoraObjectWithOaiLink(final String pid, final String binaryId, final String property)
+            throws IOException {
+
         final HttpPost post = postObjMethod("/");
         if (pid.length() > 0) {
             post.addHeader("Slug", pid);
         }
         StringBuilder sparql = new StringBuilder("INSERT {")
                 .append("<> ")
-                .append("<http://fedora.info/definitions/v4/config#hasOaiPremisRecord> ")
+                .append("<").append(property).append("> ")
                 .append("\"").append(binaryId).append("\" .")
                 .append("} WHERE {}");
         post.setEntity(new StringEntity(sparql.toString()));
