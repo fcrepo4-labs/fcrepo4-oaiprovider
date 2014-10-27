@@ -33,30 +33,58 @@ Additional Metadata record types
 
 The oaiprovider supports `oai_dc` out if the box, but users are able to add their own metadata format definitions to oai.xml.
 
-Examples
---------
+Installation
+------------
+Currently installation involves copying files by hand to an exploded fcrepo4 web application
 
-Create a Fedora Object `MyObject` and add an OAI DC Datastream `MyOAIDCDatastream` which is contained in the OAI Set `MyOAISet` 
-
-1.Create a new Datastream containing an XML representation of an oai_dc record:
-
+1. The following dependencies have to be copied to the fedora 4 web application's lib directory
+ - [JAX-B Implementation 2.2.7](http://mvnrepository.com/artifact/com.sun.xml.bind/jaxb-impl/2.2.7)
+ - [JAX-B Core 2.2.7](http://mvnrepository.com/artifact/com.sun.xml.bind/jaxb-core/2.2.7)
+ - [fcrepo4-labs/fcrepo-generator-dc](https://github.com/fcrepo4-labs/fcrepo-generator-dc)
+ 
 ```bash
-#> curl -X POST http://localhost:8080/fcrepo/rest -H "Slug:MyOAIDCDatastream" -H "Content-Type:application/octet-stream" --data @src/test/resources/test-data/oaidc.xml
+#> wget -P /path/to/fcrepo/WEB-INF/lib http://central.maven.org/maven2/com/sun/xml/bind/jaxb-impl/2.2.7/jaxb-impl-2.2.7.jar
+#> wget -P /path/to/fcrepo/WEB-INF/lib http://central.maven.org/maven2/com/sun/xml/bind/jaxb-core/2.2.7/jaxb-core-2.2.7.jar
+#> git clone https://github.com/fcrepo4-labs/fcrepo-generator-dc.git
+#> cd fcrepo-generator-dc
+#> mvn package
+#> cp target/fcrepo-generator-dc-4.0.0-beta-04-SNAPSHOT.jar /path/to/fcrepo/WEB-INF/lib/
+```
+ 
+2. Build and copy the oai provider to the fedora 4 web application's lib directory
+```bash
+#> git clone https://github.com/fcrepo4-labs/fcrepo4-oaiprovider.git
+#> cd fcrepo4-oaiprovider
+#> mvn package
+#> cp target/fcrepo4-oaiprovider-4.0.0-beta-04-SNAPSHOT.jar /path/to/fcrepo/WEB-INF/lib/
 ```
 
-2.Create a new OAI Set:
+3. Copy the oai.xml Spring configuration to fedora 4's config directory
 
 ```bash
-#> curl -X POST http://localhost:8080/fcrepo/rest/oai/sets -H "Content-Type:text/xml" --data @src/test/resources/test-data/set.xml
+#> cp fcrepo4-oaiprovider/src/main/resources/oai.xml /path/to/fcrepo/WEB-INF/classes/spring/
 ```
 
-3.Create a new Fedora Object and link the oai_dc Datastream and the OAI Set created in the previous step to it:
+4. Add `<import resource="spring/oai.xml"/>` to Fedora 4's master.xml configuration file
 
 ```bash
-#> curl -X POST http://localhost:8080/fcrepo/rest -H "Slug:MyObject" -H "Content-Type:application/sparql-update"  --data "INSERT {<> <http://fedora.info/definitions/v4/config#hasOaiDCRecord> <http://localhost:8080/fcrepo/rest/MyOAIDCDatastream> . <> <http://fedora.info/definitions/v4/config#isPartOfOAISet> \"MyOAISet\"} WHERE {}"
+#> vim /path/to/fcrepo/WEB-INF/classes/spring/master.xml
 ```
 
-4.Try the various responses from the oai provider
+After restarting Fedora 4 the OAI Provider is available at /oai
+
+
+Example
+-------
+
+In order to get some results, a couple of objects can be created:
+
+```bash
+#> curl -X POST http://localhost:8080/fcrepo/rest -H "Slug:foo""
+#> curl -X POST http://localhost:8080/fcrepo/rest -H "Slug:bar""
+```
+
+Try the various responses from the oai provider:
 
 ```bash
 #> curl http://localhost:8080/fcrepo/rest/oai?verb=ListMetadataFormats
@@ -66,4 +94,6 @@ Create a Fedora Object `MyObject` and add an OAI DC Datastream `MyOAIDCDatastrea
 #> curl "http://localhost:8080/fcrepo/rest/oai?verb=ListSets"
 #> curl "http://localhost:8080/fcrepo/rest/oai?verb=ListIdentifiers&metadataPrefix=oai_dc&set=MyOAISet"
 ```
+
+More examples can be found in [Integration Tests](https://github.com/fcrepo4-labs/fcrepo4-oaiprovider/tree/master/src/test/java/org/fcrepo/oai/integration)
                                 
