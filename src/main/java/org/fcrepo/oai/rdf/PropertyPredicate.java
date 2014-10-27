@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.fcrepo.oai;
+package org.fcrepo.oai.rdf;
 
 import com.google.common.base.Predicate;
 import com.hp.hpl.jena.graph.Node;

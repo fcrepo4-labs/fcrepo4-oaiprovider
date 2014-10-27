@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.fcrepo.oai;
+package org.fcrepo.oai.http;
 
 /**
  * A representation of a OAI compliant resumption token.

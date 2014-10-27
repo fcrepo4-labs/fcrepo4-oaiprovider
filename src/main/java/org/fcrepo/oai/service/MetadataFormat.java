@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.fcrepo.oai;
+package org.fcrepo.oai.service;
 
 import org.openarchives.oai._2.MetadataFormatType;
 import org.openarchives.oai._2.ObjectFactory;

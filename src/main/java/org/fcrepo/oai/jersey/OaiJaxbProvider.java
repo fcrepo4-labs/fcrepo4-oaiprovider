@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.fcrepo.oai;
+package org.fcrepo.oai.jersey;
 
 import com.sun.xml.bind.marshaller.CharacterEscapeHandler;
 import org.openarchives.oai._2.OAIPMHtype;

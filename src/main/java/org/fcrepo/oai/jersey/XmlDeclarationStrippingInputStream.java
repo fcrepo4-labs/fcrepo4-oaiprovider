@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.fcrepo.oai;
+package org.fcrepo.oai.jersey;
 
 import java.io.IOException;
 import java.io.InputStream;

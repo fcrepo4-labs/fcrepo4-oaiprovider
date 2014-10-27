@@ -35,21 +35,21 @@
         </property>
     </bean>
 
-    <bean name="dublinCoreOaiFormat" class="org.fcrepo.oai.MetadataFormat">
+    <bean name="dublinCoreOaiFormat" class="org.fcrepo.oai.service.MetadataFormat">
         <property name="prefix" value="oai_dc"/>
         <property name="schemaUrl" value="http://www.openarchives.org/OAI/2.0/oai_dc.xsd"/>
         <property name="namespace" value="http://www.openarchives.org/OAI/2.0/oai_dc/"/>
         <property name="propertyName" value="http://fedora.info/definitions/v4/config#hasOaiDCRecord"/>
     </bean>
 
-    <bean name="marc21OaiFormat" class="org.fcrepo.oai.MetadataFormat">
+    <bean name="marc21OaiFormat" class="org.fcrepo.oai.service.MetadataFormat">
         <property name="prefix" value="marc21" />
         <property name="schemaUrl" value="http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd" />
         <property name="namespace" value="http://www.loc.gov/MARC21/slim" />
         <property name="propertyName" value="http://fedora.info/definitions/v4/config#hasOaiMarc21Record" />
     </bean>
 
-    <bean name="premisOaiFormat" class="org.fcrepo.oai.MetadataFormat">
+    <bean name="premisOaiFormat" class="org.fcrepo.oai.service.MetadataFormat">
         <property name="prefix" value="premis" />
         <property name="schemaUrl" value="http://www.loc.gov/standards/premis/v2/premis-v2-0.xsd" />
         <property name="namespace" value="info:lc/xmlns/premis-v2" />
