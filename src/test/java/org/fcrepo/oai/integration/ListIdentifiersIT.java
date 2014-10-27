@@ -49,7 +49,7 @@ public class ListIdentifiersIT extends AbstractOAIProviderIT {
     @Test
     @SuppressWarnings("unchecked")
     public void testListIdentifyUnavailableMetadataFormat() throws Exception {
-        HttpResponse resp = getOAIPMHResponse(VerbType.LIST_IDENTIFIERS.value(), null, "marc21", null, null, null);
+        HttpResponse resp = getOAIPMHResponse(VerbType.LIST_IDENTIFIERS.value(), null, "foo", null, null, null);
         assertEquals(200, resp.getStatusLine().getStatusCode());
         OAIPMHtype oaipmh =
                 ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();

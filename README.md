@@ -34,7 +34,7 @@ Additional Metadata record types
 The oaiprovider supports `oai_dc` out if the box, but users are able to add their own metadata format definitions to oai.xml.
 
 Examples
--------
+--------
 
 Create a Fedora Object `MyObject` and add an OAI DC Datastream `MyOAIDCDatastream` which is contained in the OAI Set `MyOAISet` 
 

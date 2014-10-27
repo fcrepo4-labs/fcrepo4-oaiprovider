@@ -39,7 +39,7 @@ public class ListMetadataFormatsIT extends AbstractOAIProviderIT {
                 ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
         assertEquals(0, oaipmh.getError().size());
         assertNotNull(oaipmh.getListMetadataFormats());
-        assertEquals(1, oaipmh.getListMetadataFormats().getMetadataFormat().size());
+        assertEquals(3, oaipmh.getListMetadataFormats().getMetadataFormat().size());
         assertEquals("oai_dc", oaipmh.getListMetadataFormats().getMetadataFormat().get(0).getMetadataPrefix());
         assertEquals("http://www.openarchives.org/OAI/2.0/oai_dc/", oaipmh.getListMetadataFormats()
                 .getMetadataFormat().get(0).getMetadataNamespace());

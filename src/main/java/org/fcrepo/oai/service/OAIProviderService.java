@@ -301,6 +301,7 @@ public class OAIProviderService {
             final String identifier) throws RepositoryException {
 
         final ListMetadataFormatsType listMetadataFormats = oaiFactory.createListMetadataFormatsType();
+        final HttpResourceConverter converter = new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
 
         /* check which formats are available on top of oai_dc for this object */
         if (identifier != null && !identifier.isEmpty()) {
@@ -314,8 +315,13 @@ public class OAIProviderService {
                 }
                 final FedoraObject obj = this.objectService.findOrCreateObject(session, "/" + identifier);
                 for (MetadataFormat mdf : metadataFormats.values()) {
-                    if (mdf.getPrefix().equals("oai_dc") || obj.hasProperty(mdf.getPropertyName())) {
+                    if (mdf.getPrefix().equals("oai_dc")) {
                         listMetadataFormats.getMetadataFormat().add(mdf.asMetadataFormatType());
+                    } else {
+                        final RdfStream triples = obj.getTriples(converter, PropertiesRdfContext.class).filter(new PropertyPredicate(mdf.getPropertyName()));
+                        if (triples.hasNext()) {
+                            listMetadataFormats.getMetadataFormat().add(mdf.asMetadataFormatType());
+                        }
                     }
                 }
             }
