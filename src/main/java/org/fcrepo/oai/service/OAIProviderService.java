@@ -305,8 +305,7 @@ public class OAIProviderService {
         id.setBaseURL(uriInfo.getBaseUri().toASCIIString());
         id.setEarliestDatestamp("INSTALL_DATE");
         id.setProtocolVersion("2.0");
-        //id.setRepositoryName("Fedora 4");
-        //final String repoVersion = root.getProperty("repository.jcr.repository.version").getString();
+
         if (repoName == null) {
             id.setRepositoryName("Fedora 4");
         } else {
@@ -325,10 +324,6 @@ public class OAIProviderService {
             desc.setAny(new JAXBElement<String>(new QName("general"), String.class, repoDescription));
         }
         id.getDescription().add(0, desc);
-        //id.getAdminEmail().add(0,"admin@example.com");
-        //final DescriptionType desc = this.oaiFactory.createDescriptionType();
-        //desc.setAny(new JAXBElement<String>(new QName("general"), String.class, "An example repository description"));
-        //id.getDescription().add(0, desc);
 
         final RequestType req = oaiFactory.createRequestType();
         req.setVerb(VerbType.IDENTIFY);
