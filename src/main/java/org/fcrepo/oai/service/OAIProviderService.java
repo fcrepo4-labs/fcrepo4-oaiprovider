@@ -126,6 +126,13 @@ public class OAIProviderService {
 
     private int maxListSize;
 
+    // robyj - variables for OAI properties fcrepo-81482904
+    private String repoName;
+
+    private String adminEmail;
+
+    private String repoDescription;
+
     @Autowired
     private BinaryService binaryService;
 
@@ -226,6 +233,33 @@ public class OAIProviderService {
     }
 
     /**
+     * Sets the repository name
+     *
+     * @param repoName the repository name
+     */
+    public void setrepoName(final String repoName) {
+        this.repoName = repoName;
+    }
+
+    /**
+     * Sets the admin email field
+     *
+     * @param adminEmail the admins email address
+     */
+    public void setadminEmail(final String adminEmail) {
+        this.adminEmail = adminEmail;
+    }
+
+    /**
+     * Sets the repository description
+     *
+     * @param repoDescription the repository description
+     */
+    public void setrepoDescription(final String repoDescription) {
+        this.repoDescription = repoDescription;
+    }
+
+    /**
      * Service intitialization
      *
      * @throws RepositoryException the repository exception
@@ -271,10 +305,24 @@ public class OAIProviderService {
         id.setBaseURL(uriInfo.getBaseUri().toASCIIString());
         id.setEarliestDatestamp("INSTALL_DATE");
         id.setProtocolVersion("2.0");
-        id.setRepositoryName("Fedora 4");
-        id.getAdminEmail().add(0,"admin@example.com");
+
+        if (repoName == null) {
+            id.setRepositoryName("Fedora 4");
+        } else {
+            id.setRepositoryName(repoName);
+        }
+        if (adminEmail == null) {
+            id.getAdminEmail().add(0,"admin@example.com");
+        } else {
+            id.getAdminEmail().add(0,adminEmail);
+        }
         final DescriptionType desc = this.oaiFactory.createDescriptionType();
-        desc.setAny(new JAXBElement<String>(new QName("general"), String.class, "An example repository description"));
+        if (repoDescription == null) {
+            desc.setAny(new JAXBElement<String>(new QName("general"),
+                                                String.class, "An example repository description"));
+        } else {
+            desc.setAny(new JAXBElement<String>(new QName("general"), String.class, repoDescription));
+        }
         id.getDescription().add(0, desc);
 
         final RequestType req = oaiFactory.createRequestType();
