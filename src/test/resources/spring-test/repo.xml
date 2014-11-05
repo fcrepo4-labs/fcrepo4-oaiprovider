@@ -15,6 +15,10 @@
 
     <context:property-placeholder/>
 
+    <context:component-scan base-package="org.fcrepo"/>
+
+    <bean class="org.fcrepo.http.commons.session.SessionFactory"/>
+
     <!-- Identifier translation chain -->
     <util:list id="translationChain" value-type="org.fcrepo.kernel.identifiers.InternalIdentifierConverter">
         <bean class="org.fcrepo.kernel.impl.identifiers.NamespaceConverter"/>

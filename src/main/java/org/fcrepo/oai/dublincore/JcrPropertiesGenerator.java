@@ -19,8 +19,8 @@ import com.hp.hpl.jena.graph.Triple;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.fcrepo.http.api.FedoraNodes;
 import org.fcrepo.http.commons.api.rdf.HttpResourceConverter;
-import org.fcrepo.kernel.FedoraObject;
 import org.fcrepo.kernel.impl.rdf.impl.PropertiesRdfContext;
+import org.fcrepo.kernel.models.Container;
 import org.fcrepo.kernel.utils.iterators.RdfStream;
 import org.openarchives.oai._2_0.oai_dc.OaiDcType;
 import org.purl.dc.elements._1.ElementType;
@@ -48,7 +48,7 @@ public class JcrPropertiesGenerator {
      * @param obj the obj
      * @return the jAXB element
      */
-    public JAXBElement<OaiDcType> generateDC(final Session session, final FedoraObject obj, final UriInfo uriInfo)
+    public JAXBElement<OaiDcType> generateDC(final Session session, final Container obj, final UriInfo uriInfo)
             throws RepositoryException {
 
         final HttpResourceConverter converter = new HttpResourceConverter(session, uriInfo.getBaseUriBuilder()
