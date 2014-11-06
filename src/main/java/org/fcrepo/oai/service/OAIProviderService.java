@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import javax.annotation.PostConstruct;
 import javax.jcr.RepositoryException;
@@ -39,6 +40,7 @@ import javax.xml.datatype.DatatypeFactory;
 import javax.xml.namespace.QName;
 import javax.xml.transform.stream.StreamSource;
 
+import javax.ws.rs.core.UriBuilder;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -87,6 +89,7 @@ import org.openarchives.oai._2_0.oai_dc.OaiDcType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
@@ -144,6 +147,22 @@ public class OAIProviderService {
 
     @Autowired
     private JcrPropertiesGenerator jcrPropertiesGenerator;
+
+    private final String OAI_REPONAME = "oai:repositoryName";
+
+    private final String OAI_REPODESC = "oai:description";
+
+    private final String OAI_REPOVERSION = "oai:version";
+
+    private final String OAI_ADMINEMAIL = "oai:adminEmail";
+
+    private final String OAI_STATICNAME = "Fedora 4";
+
+    private final String OAI_STATICDESC = "An example repository description";
+
+    private final String OAI_STATICVERSION = "x.y.z";
+
+    private final String OAI_STATICEMAIL = "admin@example.com";
 
     /**
      * Sets property has set spec.
@@ -238,6 +257,31 @@ public class OAIProviderService {
         if (!this.nodeService.exists(session, setsRootPath)) {
             this.containerService.findOrCreate(session, setsRootPath);
         }
+        // robyj - fcrepo-8142904 - read version from build file and add to instance
+        final FedoraResource root = this.nodeService.find(session, "/");
+        if (!root.hasProperty(OAI_REPOVERSION)) {
+            final ClassPathResource resource = new ClassPathResource("app.properties");
+            InputStream inputstream = null;
+            String verstring = OAI_STATICVERSION;
+            try {
+                inputstream = resource.getInputStream();
+                final Properties p = new Properties();
+                p.load(inputstream);
+                verstring = p.getProperty("application.version");
+            } catch (IOException e) {
+            }
+            try {
+                final HttpResourceConverter converter =
+                new HttpResourceConverter(session, UriBuilder.fromUri("http://localhost/fcrepo/{path: .*}"));
+                final StringBuilder sparql =
+                    new StringBuilder("PREFIX oai: <http://www.openarchives.org/OAI/2.0/>" +
+                                      "INSERT DATA {<> " + OAI_REPOVERSION +
+                                      "\"" + verstring + "\" }");
+                root.updateProperties(converter, sparql.toString(), new RdfStream());
+            } catch (Exception e) {
+                System.out.println("exception is " + e.getMessage());
+            }
+        }
         session.save();
     }
 
@@ -270,12 +314,38 @@ public class OAIProviderService {
         final IdentifyType id = this.oaiFactory.createIdentifyType();
         // TODO: Need real values here from the root node?
         id.setBaseURL(uriInfo.getBaseUri().toASCIIString());
+
+        final String repoName;
+        final String repoDescription;
+        final String repoVersion;
+        final String repoAdminEmail;
+        if (root.hasProperty(OAI_ADMINEMAIL)) {
+            repoAdminEmail = root.getProperty(OAI_ADMINEMAIL).getValues()[0].getString();
+        } else {
+            repoAdminEmail = OAI_STATICEMAIL;
+        }
+        if (root.hasProperty(OAI_REPONAME)) {
+            repoName = root.getProperty(OAI_REPONAME).getValues()[0].getString();
+        } else {
+            repoName = OAI_STATICNAME;
+        }
+        if (root.hasProperty(OAI_REPOVERSION)) {
+            repoVersion = root.getProperty(OAI_REPOVERSION).getValues()[0].getString();
+        } else {
+            repoVersion = OAI_STATICVERSION;
+        }
+        if (root.hasProperty(OAI_REPODESC)) {
+            repoDescription = root.getProperty(OAI_REPODESC).getValues()[0].getString() +
+                              " [" + repoVersion + "]";
+        } else {
+            repoDescription = OAI_STATICDESC + " [" + repoVersion + "]";
+        }
         id.setEarliestDatestamp("INSTALL_DATE");
         id.setProtocolVersion("2.0");
-        id.setRepositoryName("Fedora 4");
-        id.getAdminEmail().add(0,"admin@example.com");
+        id.setRepositoryName(repoName);
+        id.getAdminEmail().add(0,repoAdminEmail);
         final DescriptionType desc = this.oaiFactory.createDescriptionType();
-        desc.setAny(new JAXBElement<String>(new QName("general"), String.class, "An example repository description"));
+        desc.setAny(new JAXBElement<String>(new QName("general"), String.class, repoDescription));
         id.getDescription().add(0, desc);
 
         final RequestType req = oaiFactory.createRequestType();
