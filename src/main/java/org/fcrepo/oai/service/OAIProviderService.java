@@ -42,24 +42,25 @@ import javax.xml.transform.stream.StreamSource;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.fcrepo.http.api.FedoraLdp;
 import org.fcrepo.http.api.FedoraNodes;
 import org.fcrepo.http.commons.api.rdf.HttpResourceConverter;
 import org.fcrepo.http.commons.session.SessionFactory;
-import org.fcrepo.kernel.FedoraBinary;
-import org.fcrepo.kernel.FedoraObject;
-import org.fcrepo.kernel.FedoraResource;
 import org.fcrepo.kernel.RdfLexicon;
 import org.fcrepo.kernel.impl.rdf.impl.PropertiesRdfContext;
+import org.fcrepo.kernel.models.Container;
+import org.fcrepo.kernel.models.FedoraBinary;
+import org.fcrepo.kernel.models.FedoraResource;
 import org.fcrepo.kernel.services.BinaryService;
+import org.fcrepo.kernel.services.ContainerService;
 import org.fcrepo.kernel.services.NodeService;
-import org.fcrepo.kernel.services.ObjectService;
 import org.fcrepo.kernel.services.RepositoryService;
 import org.fcrepo.kernel.utils.iterators.RdfStream;
 import org.fcrepo.oai.dublincore.JcrPropertiesGenerator;
+import org.fcrepo.oai.jql.JQLConverter;
 import org.fcrepo.oai.rdf.PropertyPredicate;
 import org.fcrepo.oai.http.ResumptionToken;
 import org.fcrepo.oai.jersey.XmlDeclarationStrippingInputStream;
-import org.fcrepo.transform.sparql.JQLConverter;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormatter;
@@ -126,13 +127,6 @@ public class OAIProviderService {
 
     private int maxListSize;
 
-    // robyj - variables for OAI properties fcrepo-81482904
-    private String repoName;
-
-    private String adminEmail;
-
-    private String repoDescription;
-
     @Autowired
     private BinaryService binaryService;
 
@@ -143,13 +137,29 @@ public class OAIProviderService {
     private SessionFactory sessionFactory;
 
     @Autowired
-    private ObjectService objectService;
+    private ContainerService containerService;
 
     @Autowired
     private RepositoryService repositoryService;
 
     @Autowired
     private JcrPropertiesGenerator jcrPropertiesGenerator;
+
+    private final String OAI_REPONAME = "oai:repositoryName";
+
+    private final String OAI_REPODESC = "oai:description";
+
+    private final String OAI_REPOVERSION = "oai:version";
+
+    private final String OAI_ADMINEMAIL = "oai:adminEmail";
+
+    private final String OAI_STATICNAME = "Fedora 4";
+
+    private final String OAI_STATICDESC = "An example repository description";
+
+    private final String OAI_STATICVERSION = "4.0.0";
+
+    private final String OAI_STATICEMAIL = "admin@example.com";
 
     /**
      * Sets property has set spec.
@@ -233,33 +243,6 @@ public class OAIProviderService {
     }
 
     /**
-     * Sets the repository name
-     *
-     * @param repoName the repository name
-     */
-    public void setrepoName(final String repoName) {
-        this.repoName = repoName;
-    }
-
-    /**
-     * Sets the admin email field
-     *
-     * @param adminEmail the admins email address
-     */
-    public void setadminEmail(final String adminEmail) {
-        this.adminEmail = adminEmail;
-    }
-
-    /**
-     * Sets the repository description
-     *
-     * @param repoDescription the repository description
-     */
-    public void setrepoDescription(final String repoDescription) {
-        this.repoDescription = repoDescription;
-    }
-
-    /**
      * Service intitialization
      *
      * @throws RepositoryException the repository exception
@@ -269,7 +252,7 @@ public class OAIProviderService {
         /* check if set root node exists */
         final Session session = sessionFactory.getInternalSession();
         if (!this.nodeService.exists(session, setsRootPath)) {
-            this.objectService.findOrCreateObject(session, setsRootPath);
+            this.containerService.findOrCreate(session, setsRootPath);
         }
         session.save();
     }
@@ -298,31 +281,42 @@ public class OAIProviderService {
     public JAXBElement<OAIPMHtype> identify(final Session session, final UriInfo uriInfo) throws RepositoryException,
             JAXBException {
 
-        final FedoraResource root = this.nodeService.getObject(session, "/");
+        final FedoraResource root = this.nodeService.find(session, "/");
 
         final IdentifyType id = this.oaiFactory.createIdentifyType();
         // TODO: Need real values here from the root node?
         id.setBaseURL(uriInfo.getBaseUri().toASCIIString());
+        final String repoName;
+        final String repoDescription;
+        final String repoVersion;
+        final String repoAdminEmail;
+        if (root.hasProperty(OAI_ADMINEMAIL)) {
+            repoAdminEmail = root.getProperty(OAI_ADMINEMAIL).getValues()[0].getString();
+        } else {
+            repoAdminEmail = OAI_STATICEMAIL;
+        }
+        if (root.hasProperty(OAI_REPONAME)) {
+            repoName = root.getProperty(OAI_REPONAME).getValues()[0].getString();
+        } else {
+            repoName = OAI_STATICNAME;
+        }
+        if (root.hasProperty(OAI_REPOVERSION)) {
+            repoVersion = root.getProperty(OAI_REPOVERSION).getValues()[0].getString();
+        } else {
+            repoVersion = OAI_STATICVERSION;
+        }
+        if (root.hasProperty(OAI_REPODESC)) {
+            repoDescription = root.getProperty(OAI_REPODESC).getValues()[0].getString() +
+                              " [" + repoVersion + "]";
+        } else {
+            repoDescription = OAI_STATICDESC + " [" + repoVersion + "]";
+        }
         id.setEarliestDatestamp("INSTALL_DATE");
         id.setProtocolVersion("2.0");
-
-        if (repoName == null) {
-            id.setRepositoryName("Fedora 4");
-        } else {
-            id.setRepositoryName(repoName);
-        }
-        if (adminEmail == null) {
-            id.getAdminEmail().add(0,"admin@example.com");
-        } else {
-            id.getAdminEmail().add(0,adminEmail);
-        }
+        id.setRepositoryName(repoName);
+        id.getAdminEmail().add(0,repoAdminEmail);
         final DescriptionType desc = this.oaiFactory.createDescriptionType();
-        if (repoDescription == null) {
-            desc.setAny(new JAXBElement<String>(new QName("general"),
-                                                String.class, "An example repository description"));
-        } else {
-            desc.setAny(new JAXBElement<String>(new QName("general"), String.class, repoDescription));
-        }
+        desc.setAny(new JAXBElement<String>(new QName("general"), String.class, repoDescription));
         id.getDescription().add(0, desc);
 
         final RequestType req = oaiFactory.createRequestType();
@@ -362,7 +356,7 @@ public class OAIProviderService {
                             OAIPMHerrorcodeType.ID_DOES_NOT_EXIST,
                             "The object does not exist");
                 }
-                final FedoraObject obj = this.objectService.findOrCreateObject(session, "/" + identifier);
+                final Container obj = this.containerService.findOrCreate(session, "/" + identifier);
                 for (MetadataFormat mdf : metadataFormats.values()) {
                     if (mdf.getPrefix().equals("oai_dc")) {
                         listMetadataFormats.getMetadataFormat().add(mdf.asMetadataFormatType());
@@ -427,7 +421,7 @@ public class OAIProviderService {
         }
 
         /* Prepare the OAI response objects */
-        final FedoraObject obj = this.objectService.findOrCreateObject(session, "/" + identifier);
+        final Container obj = this.containerService.findOrCreate(session, "/" + identifier);
 
         final OAIPMHtype oai = oaiFactory.createOAIPMHtype();
         final RequestType req = oaiFactory.createRequestType();
@@ -450,13 +444,13 @@ public class OAIProviderService {
         }
     }
 
-    private JAXBElement<OaiDcType> generateOaiDc(final Session session, final FedoraObject obj,
+    private JAXBElement<OaiDcType> generateOaiDc(final Session session, final Container obj,
             final UriInfo uriInfo) throws RepositoryException {
 
         return jcrPropertiesGenerator.generateDC(session, obj, uriInfo);
     }
 
-    private JAXBElement<String> fetchOaiResponse(final FedoraObject obj, final Session session,
+    private JAXBElement<String> fetchOaiResponse(final Container obj, final Session session,
             final MetadataFormat format, final UriInfo uriInfo) throws RepositoryException, IOException {
 
         final HttpResourceConverter converter = new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone()
@@ -471,7 +465,7 @@ public class OAIProviderService {
         }
 
         final String recordPath = triples.next().getObject().getLiteralValue().toString();
-        final FedoraBinary bin = binaryService.findOrCreateBinary(session,"/" + recordPath);
+        final FedoraBinary bin = binaryService.findOrCreate(session, "/" + recordPath);
 
         try (final InputStream src = new XmlDeclarationStrippingInputStream(bin.getContent())) {
             return new JAXBElement<String>(new QName(format.getPrefix()), String.class, IOUtils.toString(src));
@@ -546,7 +540,7 @@ public class OAIProviderService {
         final StringBuilder sparql =
                 new StringBuilder("PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> ")
                         .append("SELECT ?sub ?pred ?obj WHERE {?sub <" +
-                                RdfLexicon.HAS_MIXIN_TYPE + "> \"fedora:object\" . ");
+                                RdfLexicon.HAS_MIXIN_TYPE + "> \"fedora:Container\" . ");
 
         final List<String> filters = new ArrayList<>();
 
@@ -599,8 +593,8 @@ public class OAIProviderService {
                 final String path = converter.convert(sub).getPath();
 
                 h.setIdentifier(sub.getURI());
-                final FedoraObject obj =
-                        this.objectService.findOrCreateObject(session, path);
+                final Container obj =
+                        this.containerService.findOrCreate(session, path);
                 h.setDatestamp(dateFormat.print(obj.getLastModifiedDate().getTime()));
 
 
@@ -611,7 +605,7 @@ public class OAIProviderService {
                     setNames.add(triples.next().getObject().getLiteralValue().toString());
                 }
                 for (String name : setNames) {
-                    final FedoraObject setObject = this.objectService.findOrCreateObject(session, setsRootPath + "/"
+                    final Container setObject = this.containerService.findOrCreate(session, setsRootPath + "/"
                             + name);
                     final RdfStream setTriples = setObject.getTriples(converter, PropertiesRdfContext.class).filter(
                             new PropertyPredicate(propertyHasSetSpec));
@@ -715,14 +709,14 @@ public class OAIProviderService {
     public JAXBElement<OAIPMHtype> listSets(final Session session, final UriInfo uriInfo, final int offset)
             throws RepositoryException {
         final HttpResourceConverter converter =
-                new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
+                new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone().path(FedoraLdp.class));
         try {
             if (!setsEnabled) {
                 return error(VerbType.LIST_SETS, null, null, OAIPMHerrorcodeType.NO_SET_HIERARCHY,
                         "Set are not enabled");
             }
             final StringBuilder sparql = new StringBuilder("SELECT ?obj WHERE {")
-                    .append("<").append(converter.toDomain(setsRootPath)).append(">")
+                    .append("<").append(converter.toDomain(setsRootPath)).append("> ")
                     .append("<").append(propertyHasSets).append("> ?obj }");
             final JQLConverter jql = new JQLConverter(session, converter, sparql.toString());
             final ResultSet result = jql.execute();
@@ -768,14 +762,14 @@ public class OAIProviderService {
     public String createSet(final Session session, final UriInfo uriInfo, final InputStream src)
             throws RepositoryException {
         final HttpResourceConverter converter =
-                new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
+                new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone().path(FedoraLdp.class));
         try {
             final SetType set = this.unmarshaller.unmarshal(new StreamSource(src), SetType.class).getValue();
             final String setId = getSetId(set);
             if (!this.nodeService.exists(session, setsRootPath)) {
                 throw new RepositoryException("The root set object does not exist");
             }
-            final FedoraObject setRoot = this.objectService.findOrCreateObject(session, setsRootPath);
+            final Container setRoot = this.containerService.findOrCreate(session, setsRootPath);
             if (set.getSetSpec() != null) {
                 /* validate that the hierarchy of sets exists */
             }
@@ -783,7 +777,7 @@ public class OAIProviderService {
             if (this.nodeService.exists(session, setsRootPath + "/" + setId)) {
                 throw new RepositoryException("The OAI Set with the id already exists");
             }
-            final FedoraObject setObject = this.objectService.findOrCreateObject(session, setsRootPath + "/" + setId);
+            final Container setObject = this.containerService.findOrCreate(session, setsRootPath + "/" + setId);
 
             final StringBuilder sparql =
                     new StringBuilder("INSERT DATA {<" + converter.toDomain(setRoot.getPath()) + "> <" +
@@ -863,7 +857,7 @@ public class OAIProviderService {
         final StringBuilder sparql =
                 new StringBuilder("PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> ")
                         .append("SELECT ?sub ?obj WHERE {?sub <" + RdfLexicon.HAS_MIXIN_TYPE +
-                                "> \"fedora:object\" . ");
+                                "> \"fedora:Container\" . ");
 
         final List<String> filters = new ArrayList<>();
 
@@ -939,8 +933,8 @@ public class OAIProviderService {
         final String subjectUri = converter.toDomain(s).getURI();
         h.setIdentifier(subjectUri);
 
-        final FedoraObject obj =
-                this.objectService.findOrCreateObject(session, s);
+        final Container obj =
+                this.containerService.findOrCreate(session, s);
         h.setDatestamp(dateFormat.print(obj.getLastModifiedDate().getTime()));
         // get set names this object is part of
 
@@ -951,8 +945,8 @@ public class OAIProviderService {
             setNames.add(triples.next().getObject().getLiteralValue().toString());
         }
         for (String name : setNames) {
-            final FedoraObject setObject = this.objectService.findOrCreateObject(session,
-                    setsRootPath + "/" + name);
+            final Container setObject = this.containerService.findOrCreate(session,
+                                                                           setsRootPath + "/" + name);
             final RdfStream setTriples = setObject.getTriples(converter, PropertiesRdfContext.class).filter(
                     new PropertyPredicate(propertyHasSetSpec));
             h.getSetSpec().add(setTriples.next().getObject().getLiteralValue().toString());
