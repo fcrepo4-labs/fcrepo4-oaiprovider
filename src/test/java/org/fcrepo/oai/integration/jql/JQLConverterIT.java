@@ -155,7 +155,7 @@ public class JQLConverterIT {
         final JQLConverter testObj = new JQLConverter(session, subjects, sparql);
         assertEquals(
                 "SELECT [fedoraResource_subject].[jcr:path] AS subject FROM [fedora:Resource] AS " +
-                        "[fedoraResource_subject] WHERE [fedoraResource_subject].[dc:title@it] = 'xyz'",
+                        "[fedoraResource_subject] WHERE [fedoraResource_subject].[dc:title] = 'xyz\30^^\30\30^^\30it'",
                 testObj.getStatement());
 
     }

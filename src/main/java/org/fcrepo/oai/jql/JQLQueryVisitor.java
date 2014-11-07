@@ -992,7 +992,7 @@ public class JQLQueryVisitor implements QueryVisitor, ElementVisitor, ExprVisito
         } else {
             objectNode = null;
         }
-        return getPropertyNameFromPredicate(namespaceRegistry, predicate, objectNode, namespaceMapping);
+        return getPropertyNameFromPredicate(namespaceRegistry, predicate, namespaceMapping);
     }
 
     /**
