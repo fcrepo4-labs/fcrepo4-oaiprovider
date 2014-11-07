@@ -27,7 +27,8 @@
 
     <bean name="modeshapeRepofactory"
           class="org.fcrepo.kernel.impl.spring.ModeShapeRepositoryFactoryBean"
-          p:repositoryConfiguration="${fcrepo.modeshape.configuration:/config/minimal/repository.json}"/>
+          p:repositoryConfiguration="classpath:repository.json"/>
+<!--          p:repositoryConfiguration="${fcrepo.modeshape.configuration:/config/minimal/repository.json}"/> -->
 
     <bean class="org.modeshape.jcr.ModeShapeEngine" init-method="start"/>
 

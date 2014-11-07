@@ -40,7 +40,6 @@ import javax.xml.datatype.DatatypeFactory;
 import javax.xml.namespace.QName;
 import javax.xml.transform.stream.StreamSource;
 
-import javax.ws.rs.core.UriBuilder;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -257,31 +256,6 @@ public class OAIProviderService {
         if (!this.nodeService.exists(session, setsRootPath)) {
             this.containerService.findOrCreate(session, setsRootPath);
         }
-        // robyj - fcrepo-8142904 - read version from build file and add to instance
-        final FedoraResource root = this.nodeService.find(session, "/");
-        if (!root.hasProperty(OAI_REPOVERSION)) {
-            final ClassPathResource resource = new ClassPathResource("app.properties");
-            InputStream inputstream = null;
-            String verstring = OAI_STATICVERSION;
-            try {
-                inputstream = resource.getInputStream();
-                final Properties p = new Properties();
-                p.load(inputstream);
-                verstring = p.getProperty("application.version");
-            } catch (IOException e) {
-            }
-            try {
-                final HttpResourceConverter converter =
-                new HttpResourceConverter(session, UriBuilder.fromUri("http://localhost/fcrepo/{path: .*}"));
-                final StringBuilder sparql =
-                    new StringBuilder("PREFIX oai: <http://www.openarchives.org/OAI/2.0/>" +
-                                      "INSERT DATA {<> " + OAI_REPOVERSION +
-                                      "\"" + verstring + "\" }");
-                root.updateProperties(converter, sparql.toString(), new RdfStream());
-            } catch (Exception e) {
-                System.out.println("exception is " + e.getMessage());
-            }
-        }
         session.save();
     }
 
@@ -329,11 +303,19 @@ public class OAIProviderService {
         } else {
             repoName = OAI_STATICNAME;
         }
-        if (root.hasProperty(OAI_REPOVERSION)) {
-            repoVersion = root.getProperty(OAI_REPOVERSION).getValues()[0].getString();
-        } else {
-            repoVersion = OAI_STATICVERSION;
+
+        final ClassPathResource resource = new ClassPathResource("app.properties");
+        InputStream inputstream = null;
+        String verstring = OAI_STATICVERSION;
+        try {
+            inputstream = resource.getInputStream();
+            final Properties p = new Properties();
+            p.load(inputstream);
+            verstring = p.getProperty("application.version");
+        } catch (IOException e) {
         }
+        repoVersion = verstring;
+
         if (root.hasProperty(OAI_REPODESC)) {
             repoDescription = root.getProperty(OAI_REPODESC).getValues()[0].getString() +
                               " [" + repoVersion + "]";
