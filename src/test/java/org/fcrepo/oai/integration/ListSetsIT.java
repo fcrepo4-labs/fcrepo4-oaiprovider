@@ -24,8 +24,6 @@ import javax.xml.bind.JAXBElement;
 
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.http.HttpResponse;
-import org.apache.http.util.EntityUtils;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.openarchives.oai._2.OAIPMHtype;
 import org.openarchives.oai._2.VerbType;
@@ -40,11 +38,10 @@ public class ListSetsIT extends AbstractOAIProviderIT {
 
     @Test
     @SuppressWarnings("unchecked")
-    @Ignore("FIXME! https://www.pivotaltracker.com/story/show/82141394")
     public void testCreateAndListSets() throws Exception {
         createSet("oai-test-set-" + RandomStringUtils.randomAlphabetic(16), null);
-        HttpResponse resp = getOAIPMHResponse(VerbType.LIST_SETS.value(), null, null, null, null, null);
-        OAIPMHtype oai =
+        final HttpResponse resp = getOAIPMHResponse(VerbType.LIST_SETS.value(), null, null, null, null, null);
+        final OAIPMHtype oai =
                 ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
         assertEquals(200, resp.getStatusLine().getStatusCode());
         assertEquals(0, oai.getError().size());

@@ -676,7 +676,7 @@ public class OAIProviderService {
             }
             final StringBuilder sparql = new StringBuilder("SELECT ?obj WHERE {")
                     .append("<").append(converter.toDomain(setsRootPath)).append("> ")
-                    .append("<").append(propertyHasSets).append("> ?obj }");
+                    .append("<").append(propertyHasSets + "_ref").append("> ?obj }");
             final JQLConverter jql = new JQLConverter(session, converter, sparql.toString());
             final ResultSet result = jql.execute();
             final OAIPMHtype oai = oaiFactory.createOAIPMHtype();
@@ -748,7 +748,7 @@ public class OAIProviderService {
                     .append("<" + converter.toDomain(setObject.getPath()) + "> <" + propertySetName +
                             "> '" + set.getSetName() + "' .")
                     .append("<" + converter.toDomain(setObject.getPath()) + "> <" + propertyHasSetSpec +
-                            "> '" + set.getSetName() + "' .");
+                            "> '" + set.getSetSpec() + "' .");
             for (DescriptionType desc : set.getSetDescription()) {
                 // TODO: save description
             }
