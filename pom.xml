@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.fcrepo</groupId>
         <artifactId>fcrepo</artifactId>
-        <version>4.0.0-beta-04</version>
+        <version>4.0.0-beta-05-SNAPSHOT</version>
     </parent>
 
     <groupId>org.fcrepo</groupId>
@@ -43,22 +43,22 @@
         <dependency>
             <groupId>org.fcrepo</groupId>
             <artifactId>fcrepo-http-commons</artifactId>
-            <version>4.0.0-beta-04</version>
+            <version>4.0.0-beta-05-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.fcrepo</groupId>
             <artifactId>fcrepo-transform</artifactId>
-            <version>4.0.0-beta-04</version>
+            <version>4.0.0-beta-05-SNAPSHOT</version>
         </dependency>
         <dependency>
           <groupId>org.fcrepo</groupId>
           <artifactId>fcrepo-kernel</artifactId>
-          <version>4.0.0-beta-04</version>
+          <version>4.0.0-beta-05-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.fcrepo</groupId>
             <artifactId>fcrepo-kernel-impl</artifactId>
-            <version>4.0.0-beta-04</version>
+            <version>4.0.0-beta-05-SNAPSHOT</version>
             <exclusions>
                 <exclusion>
                     <groupId>ch.qos.logback</groupId>
@@ -82,12 +82,12 @@
         <dependency>
             <groupId>org.fcrepo</groupId>
             <artifactId>fcrepo-http-api</artifactId>
-            <version>4.0.0-beta-04</version>
+            <version>4.0.0-beta-05-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.fcrepo</groupId>
             <artifactId>fcrepo-http-api</artifactId>
-            <version>4.0.0-beta-04</version>
+            <version>4.0.0-beta-05-SNAPSHOT</version>
             <scope>test</scope>
             <type>test-jar</type>
         </dependency>
@@ -95,20 +95,20 @@
         <dependency>
             <groupId>org.fcrepo</groupId>
             <artifactId>fcrepo-configs</artifactId>
-            <version>4.0.0-beta-04</version>
+            <version>4.0.0-beta-05-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.fcrepo</groupId>
             <artifactId>fcrepo-http-commons</artifactId>
-            <version>4.0.0-beta-04</version>
+            <version>4.0.0-beta-05-SNAPSHOT</version>
             <scope>test</scope>
             <type>test-jar</type>
         </dependency>
         <dependency>
             <groupId>org.fcrepo</groupId>
             <artifactId>fcrepo-auth-common</artifactId>
-            <version>4.0.0-beta-04</version>
+            <version>4.0.0-beta-05-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -227,8 +227,4 @@
             </plugin>
         </plugins>
     </build>
-
-  <scm>
-    <tag>fcrepo-oaiprovider-4.0.0-beta-04</tag>
-  </scm>
 </project>
