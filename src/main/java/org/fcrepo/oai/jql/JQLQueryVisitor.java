@@ -112,7 +112,7 @@ import static javax.jcr.query.qom.QueryObjectModelConstants.JCR_OPERATOR_LESS_TH
 import static javax.jcr.query.qom.QueryObjectModelConstants.JCR_OPERATOR_LESS_THAN_OR_EQUAL_TO;
 import static javax.jcr.query.qom.QueryObjectModelConstants.JCR_OPERATOR_LIKE;
 import static javax.jcr.query.qom.QueryObjectModelConstants.JCR_OPERATOR_NOT_EQUAL_TO;
-import static org.fcrepo.jcr.FedoraJcrTypes.FEDORA_RESOURCE;
+import static org.fcrepo.kernel.FedoraJcrTypes.FEDORA_RESOURCE;
 import static org.fcrepo.kernel.impl.rdf.converters.PropertyConverter.getPropertyNameFromPredicate;
 import static org.fcrepo.kernel.impl.utils.FedoraTypesUtils.getReferencePropertyName;
 import static org.modeshape.jcr.api.JcrConstants.JCR_PATH;
