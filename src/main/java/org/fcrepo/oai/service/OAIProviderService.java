@@ -16,6 +16,10 @@
 
 package org.fcrepo.oai.service;
 
+import static java.util.Collections.emptyMap;
+import static com.hp.hpl.jena.rdf.model.ResourceFactory.createProperty;
+import static org.fcrepo.kernel.impl.rdf.converters.PropertyConverter.getPropertyNameFromPredicate;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -29,6 +33,12 @@ import java.util.Map;
 import javax.annotation.PostConstruct;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.query.InvalidQueryException;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.Row;
+import javax.jcr.query.RowIterator;
 import javax.ws.rs.core.UriInfo;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
@@ -47,6 +57,7 @@ import org.fcrepo.http.api.FedoraNodes;
 import org.fcrepo.http.commons.api.rdf.HttpResourceConverter;
 import org.fcrepo.http.commons.session.SessionFactory;
 import org.fcrepo.kernel.RdfLexicon;
+import org.fcrepo.kernel.impl.rdf.converters.ValueConverter;
 import org.fcrepo.kernel.impl.rdf.impl.PropertiesRdfContext;
 import org.fcrepo.kernel.models.Container;
 import org.fcrepo.kernel.models.FedoraBinary;
@@ -57,14 +68,13 @@ import org.fcrepo.kernel.services.NodeService;
 import org.fcrepo.kernel.services.RepositoryService;
 import org.fcrepo.kernel.utils.iterators.RdfStream;
 import org.fcrepo.oai.dublincore.JcrPropertiesGenerator;
-import org.fcrepo.oai.jql.JQLConverter;
 import org.fcrepo.oai.rdf.PropertyPredicate;
 import org.fcrepo.oai.http.ResumptionToken;
 import org.fcrepo.oai.jersey.XmlDeclarationStrippingInputStream;
-import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
+import org.modeshape.jcr.api.NamespaceRegistry;
 import org.openarchives.oai._2.DescriptionType;
 import org.openarchives.oai._2.GetRecordType;
 import org.openarchives.oai._2.HeaderType;
@@ -88,13 +98,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.hp.hpl.jena.query.QuerySolution;
-import com.hp.hpl.jena.query.ResultSet;
+import com.hp.hpl.jena.rdf.model.Property;
 import com.hp.hpl.jena.rdf.model.Resource;
 
 /**
  * The type OAI provider service.
  *
+ * @author lsitu
  * @author Frank Asseg
  */
 public class OAIProviderService {
@@ -316,7 +326,7 @@ public class OAIProviderService {
                             "The object does not exist");
                 }
                 final Container obj = this.containerService.findOrCreate(session, "/" + identifier);
-                for (MetadataFormat mdf : metadataFormats.values()) {
+                for (final MetadataFormat mdf : metadataFormats.values()) {
                     if (mdf.getPrefix().equals("oai_dc")) {
                         listMetadataFormats.getMetadataFormat().add(mdf.asMetadataFormatType());
                     } else {
@@ -345,7 +355,7 @@ public class OAIProviderService {
 
     private List<MetadataFormatType> listAvailableMetadataFormats() {
         final List<MetadataFormatType> types = new ArrayList<>(metadataFormats.size());
-        for (MetadataFormat mdf : metadataFormats.values()) {
+        for (final MetadataFormat mdf : metadataFormats.values()) {
             final MetadataFormatType mdft = oaiFactory.createMetadataFormatType();
             mdft.setMetadataPrefix(mdf.getPrefix());
             mdft.setMetadataNamespace(mdf.getNamespace());
@@ -396,7 +406,7 @@ public class OAIProviderService {
             getRecord.setRecord(record);
             oai.setGetRecord(getRecord);
             return this.oaiFactory.createOAIPMH(oai);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             log.error("Unable to create OAI record for object " + obj.getPath());
             return error(VerbType.GET_RECORD, identifier, metadataPrefix, OAIPMHerrorcodeType.ID_DOES_NOT_EXIST,
                     "The requested OAI record does not exist for object " + obj.getPath());
@@ -486,69 +496,47 @@ public class OAIProviderService {
                     OAIPMHerrorcodeType.CANNOT_DISSEMINATE_FORMAT, "Unavailable metadata format");
         }
 
-        DateTime fromDateTime = null;
-        DateTime untilDateTime = null;
+        if (StringUtils.isNotBlank(set) && !setsEnabled) {
+            return error(VerbType.LIST_RECORDS, null, metadataPrefix, OAIPMHerrorcodeType.NO_SET_HIERARCHY,
+                    "Sets are not enabled");
+        }
+
+        // dateTime format validation
         try {
-            fromDateTime = (from != null && !from.isEmpty()) ? dateFormat.parseDateTime(from) : null;
-            untilDateTime = (until != null && !until.isEmpty()) ? dateFormat.parseDateTime(until) : null;
-        } catch (IllegalArgumentException e) {
+            if (StringUtils.isNotBlank(from)) {
+                dateFormat.parseDateTime(from);
+            }
+            if (StringUtils.isNotBlank(until)) {
+                dateFormat.parseDateTime(until);
+            }
+        } catch (final IllegalArgumentException e) {
             return error(VerbType.LIST_IDENTIFIERS, null, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT,
                     e.getMessage());
         }
 
-        final StringBuilder sparql =
-                new StringBuilder("PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> ")
-                        .append("SELECT ?sub ?pred ?obj WHERE {?sub <" +
-                                RdfLexicon.HAS_MIXIN_TYPE + "> \"fedora:Container\" . ");
-
-        final List<String> filters = new ArrayList<>();
-
-        if (fromDateTime != null || untilDateTime != null) {
-            sparql.append("?sub <").append(RdfLexicon.LAST_MODIFIED_DATE).append("> ?date . ");
-            if (fromDateTime != null) {
-                filters.add("?date >='" + from + "'^^xsd:dateTime ");
-            }
-            if (untilDateTime != null) {
-                filters.add("?date <='" + until + "'^^xsd:dateTime ");
-            }
-        }
-
-        if (set != null && !set.isEmpty()) {
-            if (!setsEnabled) {
-                return error(VerbType.LIST_IDENTIFIERS, null, metadataPrefix, OAIPMHerrorcodeType.NO_SET_HIERARCHY,
-                        "Sets are not enabled");
-            }
-            sparql.append("?sub <").append(propertyIsPartOfSet).append("> ?set . ");
-            filters.add("?set = '" + set + "'");
-        }
-
-        int filterCount = 0;
-        for (String filter : filters) {
-            if (filterCount++ == 0) {
-                sparql.append("FILTER (");
-            }
-            sparql.append(filter).append(filterCount == filters.size() ? ")" : " && ");
-        }
-        sparql.append("}")
-                .append(" OFFSET ").append(offset)
-                .append(" LIMIT ").append(maxListSize);
-
         final HttpResourceConverter converter = new HttpResourceConverter(session,
                 uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
+        final ValueConverter valueConverter = new ValueConverter(session, converter);
 
+        final String fedoraContainerMixin = getNamespacePrefix(session, RdfLexicon.REPOSITORY_NAMESPACE)
+                + ":Container";
+        final String jql = listResourceQuery(session, fedoraContainerMixin, from, until, set, maxListSize, offset);
         try {
-            final JQLConverter jql = new JQLConverter(session, converter, sparql.toString());
-            final ResultSet result = jql.execute();
-            final OAIPMHtype oai = oaiFactory.createOAIPMHtype();
-            final ListIdentifiersType ids = oaiFactory.createListIdentifiersType();
+            final QueryManager queryManager = session.getWorkspace().getQueryManager();
+            final RowIterator result = executeQuery(queryManager, jql);
+
             if (!result.hasNext()) {
                 return error(VerbType.LIST_IDENTIFIERS, null, metadataPrefix, OAIPMHerrorcodeType.NO_RECORDS_MATCH,
                         "No record found");
             }
+
+            final OAIPMHtype oai = oaiFactory.createOAIPMHtype();
+            final ListIdentifiersType ids = oaiFactory.createListIdentifiersType();
+
             while (result.hasNext()) {
                 final HeaderType h = oaiFactory.createHeaderType();
-                final QuerySolution sol = result.next();
-                final Resource sub = sol.get("sub").asResource();
+                final Row sol = result.nextRow();
+                final Resource sub = valueConverter.convert(sol.getValue("sub")).asResource();
                 final String path = converter.convert(sub).getPath();
 
                 h.setIdentifier(sub.getURI());
@@ -556,14 +544,13 @@ public class OAIProviderService {
                         this.containerService.findOrCreate(session, path);
                 h.setDatestamp(dateFormat.print(obj.getLastModifiedDate().getTime()));
 
-
                 final RdfStream triples = obj.getTriples(converter, PropertiesRdfContext.class).filter(
                         new PropertyPredicate(propertyIsPartOfSet));
                 final List<String> setNames = new ArrayList<>();
                 while (triples.hasNext()) {
                     setNames.add(triples.next().getObject().getLiteralValue().toString());
                 }
-                for (String name : setNames) {
+                for (final String name : setNames) {
                     final Container setObject = this.containerService.findOrCreate(session, setsRootPath + "/"
                             + name);
                     final RdfStream setTriples = setObject.getTriples(converter, PropertiesRdfContext.class).filter(
@@ -584,7 +571,7 @@ public class OAIProviderService {
             oai.setRequest(req);
             oai.setListIdentifiers(ids);
             return oaiFactory.createOAIPMH(oai);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             e.printStackTrace();
             throw new RepositoryException(e);
         }
@@ -669,41 +656,53 @@ public class OAIProviderService {
             throws RepositoryException {
         final HttpResourceConverter converter =
                 new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone().path(FedoraLdp.class));
+        final ValueConverter valueConverter = new ValueConverter(session, converter);
+
         try {
             if (!setsEnabled) {
                 return error(VerbType.LIST_SETS, null, null, OAIPMHerrorcodeType.NO_SET_HIERARCHY,
                         "Set are not enabled");
             }
-            final StringBuilder sparql = new StringBuilder("SELECT ?obj WHERE {")
-                    .append("<").append(converter.toDomain(setsRootPath)).append("> ")
-                    .append("<").append(propertyHasSets + "_ref").append("> ?obj }");
-            final JQLConverter jql = new JQLConverter(session, converter, sparql.toString());
-            final ResultSet result = jql.execute();
+
+            final String fedoraResource = getNamespacePrefix(session, RdfLexicon.REPOSITORY_NAMESPACE) + ":Resource";
+            final String propJcrPath = getPropertyName(session,
+                    createProperty(RdfLexicon.JCR_NAMESPACE + "path"));
+            final String propOAISet_ref = getPropertyName(session, createProperty(propertyHasSets + "_ref"));
+
+            final String jql = "SELECT [" + propOAISet_ref + "] AS obj FROM [" + fedoraResource + "]"
+                    + " WHERE [" + propJcrPath + "] = '" + setsRootPath + "'";
+            final QueryManager queryManager = session.getWorkspace().getQueryManager();
+            final RowIterator result = executeQuery(queryManager, jql);
+            if (!result.hasNext()) {
+                return error(VerbType.LIST_IDENTIFIERS, null, null, OAIPMHerrorcodeType.NO_RECORDS_MATCH,
+                        "No record found");
+            }
+
             final OAIPMHtype oai = oaiFactory.createOAIPMHtype();
             final ListSetsType sets = oaiFactory.createListSetsType();
+            final String propHasOAISetName = getPropertyName(session, createProperty(propertySetName));
+            final String propHasOAISetSpec = getPropertyName(session, createProperty(propertyHasSetSpec));
+
             while (result.hasNext()) {
-                final Resource setRes = result.next().get("obj").asResource();
-                sparql.setLength(0);
-                sparql.append("SELECT ?name ?spec WHERE {")
-                        .append("<").append(setRes).append("> ")
-                        .append("<").append(propertySetName).append("> ")
-                        .append("?name ; ")
-                        .append("<").append(propertyHasSetSpec).append("> ")
-                        .append("?spec . ")
-                        .append("}");
-                final JQLConverter setJql = new JQLConverter(session, converter, sparql.toString());
-                final ResultSet setResult = setJql.execute();
+                final Row row = result.nextRow();
+                final Resource setRes = valueConverter.convert(row.getValue("obj")).asResource();
+
+                final String setJql = "SELECT [" + propHasOAISetName + "] AS name,"
+                        + " [" + propHasOAISetSpec + "] AS spec FROM [" + fedoraResource + "]"
+                        + " WHERE [" + propJcrPath + "] = '" + converter.convert(setRes).getPath() + "'";
+
+                final RowIterator setResult = executeQuery(queryManager, setJql);
                 while (setResult.hasNext()) {
                     final SetType set = oaiFactory.createSetType();
-                    final QuerySolution sol = setResult.next();
-                    set.setSetName(sol.get("name").asLiteral().getString());
-                    set.setSetSpec(sol.get("spec").asLiteral().getString());
+                    final Row sol = setResult.nextRow();
+                    set.setSetName(valueConverter.convert(sol.getValue("name")).asLiteral().getString());
+                    set.setSetSpec(valueConverter.convert(sol.getValue("spec")).asLiteral().getString());
                     sets.getSet().add(set);
                 }
             }
             oai.setListSets(sets);
             return oaiFactory.createOAIPMH(oai);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             e.printStackTrace();
             throw new RepositoryException(e);
         }
@@ -749,14 +748,14 @@ public class OAIProviderService {
                             "> '" + set.getSetName() + "' .")
                     .append("<" + converter.toDomain(setObject.getPath()) + "> <" + propertyHasSetSpec +
                             "> '" + set.getSetSpec() + "' .");
-            for (DescriptionType desc : set.getSetDescription()) {
+            for (final DescriptionType desc : set.getSetDescription()) {
                 // TODO: save description
             }
             sparql.append("}");
             setObject.updateProperties(converter, sparql.toString(), new RdfStream());
             session.save();
             return setObject.getPath();
-        } catch (JAXBException e) {
+        } catch (final JAXBException e) {
             e.printStackTrace();
             throw new RepositoryException(e);
         }
@@ -793,6 +792,7 @@ public class OAIProviderService {
 
         final HttpResourceConverter converter =
                 new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
+        final ValueConverter valueConverter = new ValueConverter(session, converter);
 
         if (metadataPrefix == null) {
             return error(VerbType.LIST_RECORDS, null, null, OAIPMHerrorcodeType.BAD_ARGUMENT,
@@ -803,65 +803,44 @@ public class OAIProviderService {
             return error(VerbType.LIST_RECORDS, null, metadataPrefix,
                     OAIPMHerrorcodeType.CANNOT_DISSEMINATE_FORMAT, "Unavailable metadata format");
         }
-        DateTime fromDateTime = null;
-        DateTime untilDateTime = null;
+
+        // dateTime format validation
         try {
-            fromDateTime = (from != null && !from.isEmpty()) ? dateFormat.parseDateTime(from) : null;
-            untilDateTime = (until != null && !until.isEmpty()) ? dateFormat.parseDateTime(until) : null;
-        } catch (IllegalArgumentException e) {
-            return error(VerbType.LIST_RECORDS, null, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT,
+            if (StringUtils.isNotBlank(from)) {
+                dateFormat.parseDateTime(from);
+            }
+            if (StringUtils.isNotBlank(until)) {
+                dateFormat.parseDateTime(until);
+            }
+        } catch (final IllegalArgumentException e) {
+            return error(VerbType.LIST_IDENTIFIERS, null, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT,
                     e.getMessage());
         }
 
-        final StringBuilder sparql =
-                new StringBuilder("PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> ")
-                        .append("SELECT ?sub ?obj WHERE {?sub <" + RdfLexicon.HAS_MIXIN_TYPE +
-                                "> \"fedora:Container\" . ");
-
-        final List<String> filters = new ArrayList<>();
-
-        if (fromDateTime != null || untilDateTime != null) {
-            sparql.append("?sub <").append(RdfLexicon.LAST_MODIFIED_DATE).append("> ?date . ");
-            if (fromDateTime != null) {
-                filters.add("?date >='" + from + "'^^xsd:dateTime ");
-            }
-            if (untilDateTime != null) {
-                filters.add("?date <='" + until + "'^^xsd:dateTime ");
-            }
+        if (StringUtils.isNotBlank(set) && !setsEnabled) {
+            return error(VerbType.LIST_RECORDS, null, metadataPrefix, OAIPMHerrorcodeType.NO_SET_HIERARCHY,
+                    "Sets are not enabled");
         }
 
-        if (set != null && !set.isEmpty()) {
-            if (!setsEnabled) {
-                return error(VerbType.LIST_RECORDS, null, metadataPrefix, OAIPMHerrorcodeType.NO_SET_HIERARCHY,
-                        "Sets are not enabled");
-            }
-            sparql.append("?sub <").append(propertyIsPartOfSet).append("> ?set . ");
-            filters.add("?set = '" + set + "'");
-        }
-
-        int filterCount = 0;
-        for (String filter : filters) {
-            if (filterCount++ == 0) {
-                sparql.append("FILTER (");
-            }
-            sparql.append(filter).append(filterCount == filters.size() ? ")" : " && ");
-        }
-        sparql.append("}")
-                .append(" OFFSET ").append(offset)
-                .append(" LIMIT ").append(maxListSize);
+        final String fedoraContainerMixin = getNamespacePrefix(session, RdfLexicon.REPOSITORY_NAMESPACE)
+                + ":Container";
+        final String jql = listResourceQuery(session, fedoraContainerMixin, from, until, set, maxListSize, offset);
         try {
-            final JQLConverter jql = new JQLConverter(session, converter, sparql.toString());
-            final ResultSet result = jql.execute();
-            final OAIPMHtype oai = oaiFactory.createOAIPMHtype();
-            final ListRecordsType records = oaiFactory.createListRecordsType();
+
+            final QueryManager queryManager = session.getWorkspace().getQueryManager();
+            final RowIterator result = executeQuery(queryManager, jql);
+
             if (!result.hasNext()) {
                 return error(VerbType.LIST_RECORDS, null, metadataPrefix, OAIPMHerrorcodeType.NO_RECORDS_MATCH,
                         "No record found");
             }
+
+            final OAIPMHtype oai = oaiFactory.createOAIPMHtype();
+            final ListRecordsType records = oaiFactory.createListRecordsType();
             while (result.hasNext()) {
                 // check if the records exists
-                final QuerySolution solution = result.next();
-                final Resource subjectUri = solution.get("sub").asResource();
+                final Row solution = result.nextRow();
+                final Resource subjectUri = valueConverter.convert(solution.getValue("sub")).asResource();
                 final RecordType record = this.createRecord(session, mdf, converter.asString(subjectUri), uriInfo);
                 records.getRecord().add(record);
             }
@@ -877,7 +856,7 @@ public class OAIProviderService {
             oai.setRequest(req);
             oai.setListRecords(records);
             return oaiFactory.createOAIPMH(oai);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             e.printStackTrace();
             throw new RepositoryException(e);
         }
@@ -903,7 +882,7 @@ public class OAIProviderService {
         while (triples.hasNext()) {
             setNames.add(triples.next().getObject().getLiteralValue().toString());
         }
-        for (String name : setNames) {
+        for (final String name : setNames) {
             final Container setObject = this.containerService.findOrCreate(session,
                                                                            setsRootPath + "/" + name);
             final RdfStream setTriples = setObject.getTriples(converter, PropertiesRdfContext.class).filter(
@@ -925,5 +904,75 @@ public class OAIProviderService {
         record.setMetadata(md);
         record.setHeader(h);
         return record;
+    }
+
+    private String listResourceQuery(final Session session, final String mixinTypes, final String from,
+        final String until, final String set, final int limit, final int offset) throws RepositoryException {
+        final String fedoraResource = getNamespacePrefix(session, RdfLexicon.REPOSITORY_NAMESPACE) + ":Resource";
+        final String propJcrPath = getPropertyName(session,
+                createProperty(RdfLexicon.JCR_NAMESPACE + "path"));
+        final String propHasMixinType = getPropertyName(session, RdfLexicon.HAS_MIXIN_TYPE);
+        final String propJcrLastModifiedDate = getPropertyName(session, RdfLexicon.LAST_MODIFIED_DATE);
+        final StringBuilder jql = new StringBuilder();
+        jql.append("SELECT res.[" + propJcrPath + "] AS sub FROM [" + fedoraResource + "] AS [res]");
+        jql.append(" WHERE ");
+
+        // mixin type constraint
+        jql.append("res.[" + propHasMixinType + "] = '" + mixinTypes + "'");
+
+        // start datetime constraint
+        if (StringUtils.isNotBlank(from)) {
+            jql.append(" AND ");
+            jql.append("res.[" + propJcrLastModifiedDate + "] >= CAST( '" + from + "' AS DATE)");
+        }
+        // end datetime constraint
+        if (StringUtils.isNotBlank(until)) {
+            jql.append(" AND ");
+            jql.append("res.[" + propJcrLastModifiedDate + "] <= CAST( '" + until + "' AS DATE)");
+        }
+
+        // set constraint
+        if (StringUtils.isNotBlank(set)) {
+            final String predicateIsPartOfOAISet = getPropertyName(session,
+                    createProperty(propertyIsPartOfSet));
+            jql.append(" AND ");
+            jql.append("res.[" + predicateIsPartOfOAISet + "] = '" + set + "'");
+        }
+
+        if (limit > 0) {
+            jql.append(" LIMIT ").append(maxListSize)
+                    .append(" OFFSET ").append(offset);
+        }
+        return jql.toString();
+    }
+
+    private RowIterator executeQuery(final QueryManager queryManager, final String jql)
+            throws InvalidQueryException, RepositoryException {
+        final Query query = queryManager.createQuery(jql, Query.JCR_SQL2);
+        final QueryResult results = query.execute();
+        return results.getRows();
+    }
+
+    /**
+     * Get a property name for an RDF predicate
+     * @param session
+     * @param predicate
+     * @return property name from the given predicate
+     * @throws RepositoryException
+     */
+    private String getPropertyName(final Session session, final Property predicate)
+            throws RepositoryException {
+
+        final NamespaceRegistry namespaceRegistry =
+                (org.modeshape.jcr.api.NamespaceRegistry) session.getWorkspace().getNamespaceRegistry();
+        final Map<String, String> namespaceMapping = emptyMap();
+        return getPropertyNameFromPredicate(namespaceRegistry, predicate, namespaceMapping);
+    }
+
+    private String getNamespacePrefix(final Session session, final String namespace)
+            throws RepositoryException {
+        final NamespaceRegistry namespaceRegistry =
+                (org.modeshape.jcr.api.NamespaceRegistry) session.getWorkspace().getNamespaceRegistry();
+        return namespaceRegistry.getPrefix(namespace);
     }
 }
