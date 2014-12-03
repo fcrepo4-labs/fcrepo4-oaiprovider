@@ -33,7 +33,6 @@ import java.util.Map;
 import javax.annotation.PostConstruct;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.query.InvalidQueryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
@@ -56,6 +55,7 @@ import org.fcrepo.http.api.FedoraLdp;
 import org.fcrepo.http.api.FedoraNodes;
 import org.fcrepo.http.commons.api.rdf.HttpResourceConverter;
 import org.fcrepo.http.commons.session.SessionFactory;
+import org.fcrepo.kernel.FedoraJcrTypes;
 import org.fcrepo.kernel.RdfLexicon;
 import org.fcrepo.kernel.impl.rdf.converters.ValueConverter;
 import org.fcrepo.kernel.impl.rdf.impl.PropertiesRdfContext;
@@ -503,12 +503,8 @@ public class OAIProviderService {
 
         // dateTime format validation
         try {
-            if (StringUtils.isNotBlank(from)) {
-                dateFormat.parseDateTime(from);
-            }
-            if (StringUtils.isNotBlank(until)) {
-                dateFormat.parseDateTime(until);
-            }
+            validateDateTimeFormat(from);
+            validateDateTimeFormat(until);
         } catch (final IllegalArgumentException e) {
             return error(VerbType.LIST_IDENTIFIERS, null, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT,
                     e.getMessage());
@@ -518,9 +514,8 @@ public class OAIProviderService {
                 uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
         final ValueConverter valueConverter = new ValueConverter(session, converter);
 
-        final String fedoraContainerMixin = getNamespacePrefix(session, RdfLexicon.REPOSITORY_NAMESPACE)
-                + ":Container";
-        final String jql = listResourceQuery(session, fedoraContainerMixin, from, until, set, maxListSize, offset);
+        final String jql = listResourceQuery(session, FedoraJcrTypes.FEDORA_CONTAINER,
+                from, until, set, maxListSize, offset);
         try {
             final QueryManager queryManager = session.getWorkspace().getQueryManager();
             final RowIterator result = executeQuery(queryManager, jql);
@@ -664,12 +659,11 @@ public class OAIProviderService {
                         "Set are not enabled");
             }
 
-            final String fedoraResource = getNamespacePrefix(session, RdfLexicon.REPOSITORY_NAMESPACE) + ":Resource";
             final String propJcrPath = getPropertyName(session,
                     createProperty(RdfLexicon.JCR_NAMESPACE + "path"));
             final String propOAISet_ref = getPropertyName(session, createProperty(propertyHasSets + "_ref"));
 
-            final String jql = "SELECT [" + propOAISet_ref + "] AS obj FROM [" + fedoraResource + "]"
+            final String jql = "SELECT [" + propOAISet_ref + "] AS obj FROM [" + FedoraJcrTypes.FEDORA_RESOURCE + "]"
                     + " WHERE [" + propJcrPath + "] = '" + setsRootPath + "'";
             final QueryManager queryManager = session.getWorkspace().getQueryManager();
             final RowIterator result = executeQuery(queryManager, jql);
@@ -688,7 +682,7 @@ public class OAIProviderService {
                 final Resource setRes = valueConverter.convert(row.getValue("obj")).asResource();
 
                 final String setJql = "SELECT [" + propHasOAISetName + "] AS name,"
-                        + " [" + propHasOAISetSpec + "] AS spec FROM [" + fedoraResource + "]"
+                        + " [" + propHasOAISetSpec + "] AS spec FROM [" + FedoraJcrTypes.FEDORA_RESOURCE + "]"
                         + " WHERE [" + propJcrPath + "] = '" + converter.convert(setRes).getPath() + "'";
 
                 final RowIterator setResult = executeQuery(queryManager, setJql);
@@ -806,12 +800,8 @@ public class OAIProviderService {
 
         // dateTime format validation
         try {
-            if (StringUtils.isNotBlank(from)) {
-                dateFormat.parseDateTime(from);
-            }
-            if (StringUtils.isNotBlank(until)) {
-                dateFormat.parseDateTime(until);
-            }
+            validateDateTimeFormat(from);
+            validateDateTimeFormat(until);
         } catch (final IllegalArgumentException e) {
             return error(VerbType.LIST_IDENTIFIERS, null, metadataPrefix, OAIPMHerrorcodeType.BAD_ARGUMENT,
                     e.getMessage());
@@ -822,9 +812,8 @@ public class OAIProviderService {
                     "Sets are not enabled");
         }
 
-        final String fedoraContainerMixin = getNamespacePrefix(session, RdfLexicon.REPOSITORY_NAMESPACE)
-                + ":Container";
-        final String jql = listResourceQuery(session, fedoraContainerMixin, from, until, set, maxListSize, offset);
+        final String jql = listResourceQuery(session, FedoraJcrTypes.FEDORA_CONTAINER,
+                from, until, set, maxListSize, offset);
         try {
 
             final QueryManager queryManager = session.getWorkspace().getQueryManager();
@@ -908,13 +897,13 @@ public class OAIProviderService {
 
     private String listResourceQuery(final Session session, final String mixinTypes, final String from,
         final String until, final String set, final int limit, final int offset) throws RepositoryException {
-        final String fedoraResource = getNamespacePrefix(session, RdfLexicon.REPOSITORY_NAMESPACE) + ":Resource";
+
         final String propJcrPath = getPropertyName(session,
                 createProperty(RdfLexicon.JCR_NAMESPACE + "path"));
         final String propHasMixinType = getPropertyName(session, RdfLexicon.HAS_MIXIN_TYPE);
         final String propJcrLastModifiedDate = getPropertyName(session, RdfLexicon.LAST_MODIFIED_DATE);
         final StringBuilder jql = new StringBuilder();
-        jql.append("SELECT res.[" + propJcrPath + "] AS sub FROM [" + fedoraResource + "] AS [res]");
+        jql.append("SELECT res.[" + propJcrPath + "] AS sub FROM [" + FedoraJcrTypes.FEDORA_RESOURCE + "] AS [res]");
         jql.append(" WHERE ");
 
         // mixin type constraint
@@ -947,10 +936,16 @@ public class OAIProviderService {
     }
 
     private RowIterator executeQuery(final QueryManager queryManager, final String jql)
-            throws InvalidQueryException, RepositoryException {
+            throws RepositoryException {
         final Query query = queryManager.createQuery(jql, Query.JCR_SQL2);
         final QueryResult results = query.execute();
         return results.getRows();
+    }
+
+    private void validateDateTimeFormat(final String dateTime) {
+        if (StringUtils.isNotBlank(dateTime)) {
+            dateFormat.parseDateTime(dateTime);
+        }
     }
 
     /**
@@ -967,12 +962,5 @@ public class OAIProviderService {
                 (org.modeshape.jcr.api.NamespaceRegistry) session.getWorkspace().getNamespaceRegistry();
         final Map<String, String> namespaceMapping = emptyMap();
         return getPropertyNameFromPredicate(namespaceRegistry, predicate, namespaceMapping);
-    }
-
-    private String getNamespacePrefix(final Session session, final String namespace)
-            throws RepositoryException {
-        final NamespaceRegistry namespaceRegistry =
-                (org.modeshape.jcr.api.NamespaceRegistry) session.getWorkspace().getNamespaceRegistry();
-        return namespaceRegistry.getPrefix(namespace);
     }
 }
