@@ -19,6 +19,7 @@ package org.fcrepo.oai.integration;
 import static java.lang.Integer.MAX_VALUE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static javax.ws.rs.core.Response.Status.CREATED;
+import static javax.ws.rs.core.Response.Status.NO_CONTENT;
 import static org.apache.http.impl.client.HttpClientBuilder.create;
 import static org.junit.Assert.assertEquals;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -42,6 +43,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.entity.ContentType;
@@ -57,6 +59,9 @@ import org.openarchives.oai._2.SetType;
 import org.slf4j.Logger;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.core.io.ClassPathResource;
+import java.util.Properties;
+
 
 /**
  * <p>
@@ -136,6 +141,41 @@ public abstract class AbstractOAIProviderIT {
         logger.debug("Executing: " + method.getMethod() + " to " +
                 method.getURI());
         return client.execute(method).getStatusLine().getStatusCode();
+    }
+
+    protected String getVersion() {
+        final ClassPathResource resource = new ClassPathResource("app.properties");
+        InputStream inputstream = null;
+        String verstring = "";
+        try {
+            inputstream = resource.getInputStream();
+            final Properties p = new Properties();
+            p.load(inputstream);
+            verstring = p.getProperty("application.version");
+        } catch (IOException e) {
+        }
+        return verstring;
+    }
+
+
+    protected void createProperty(final String ident, final String value) throws IOException {
+        final HttpPatch post = new HttpPatch(serverAddress + "/");
+        //post.addHeader("Slug", "/");
+        if (!ident.isEmpty() && !value.isEmpty()) {
+            StringBuilder sparql = new StringBuilder("PREFIX oai: ")
+                    .append("<http://www.openarchives.org/OAI/2.0/> ")
+                    .append("INSERT { ")
+                    .append("<> ")
+                    .append(ident)
+                    .append(" \"").append(value).append("\"")
+                    .append(" } WHERE { }");
+            post.setEntity(new StringEntity(sparql.toString()));
+            post.setHeader("Content-Type", "application/sparql-update");
+        }
+
+        final HttpResponse response = client.execute(post);
+        assertEquals(NO_CONTENT.getStatusCode(), response.getStatusLine().getStatusCode());
+        post.releaseConnection();
     }
 
     protected void createFedoraObject(final String pid, final String set) throws IOException {

@@ -49,5 +49,21 @@ public class IdentifyIT extends AbstractOAIProviderIT {
         assertEquals(VerbType.IDENTIFY.value(), oaipmh.getRequest().getVerb().value());
         assertEquals("Fedora 4", oaipmh.getIdentify().getRepositoryName());
         assertEquals(serverAddress, oaipmh.getIdentify().getBaseURL());
+
+        createProperty("oai:repositoryName","This is a name to test the repository");
+        createProperty("oai:description","Not a description");
+        createProperty("oai:adminEmail","someone@somewhere.org");
+        HttpResponse resp2 = getOAIPMHResponse(VerbType.IDENTIFY.value(), null, null, null, null, null);
+        assertEquals(200, resp2.getStatusLine().getStatusCode());
+        OAIPMHtype oaipmh2 =
+            ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp2.getEntity().getContent())).getValue();
+        assertEquals(0, oaipmh2.getError().size());
+        assertNotNull(oaipmh2.getIdentify());
+        assertNotNull(oaipmh2.getRequest());
+        assertEquals(VerbType.IDENTIFY.value(), oaipmh2.getRequest().getVerb().value());
+        assertEquals("This is a name to test the repository", oaipmh2.getIdentify().getRepositoryName());
+        //assertEquals("Not a description ["+getVersion()+"]", oaipmh2.getIdentify().getDescription().get(0).getAny());
+        assertEquals("someone@somewhere.org",oaipmh2.getIdentify().getAdminEmail().get(0));
+        assertEquals(serverAddress, oaipmh2.getIdentify().getBaseURL());
     }
 }
