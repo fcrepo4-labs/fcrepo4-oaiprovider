@@ -296,6 +296,14 @@ public class OAIProviderService {
     public void init() throws RepositoryException {
         /* check if set root node exists */
         final Session session = sessionFactory.getInternalSession();
+
+        final NamespaceRegistry namespaceRegistry =
+                (org.modeshape.jcr.api.NamespaceRegistry) session.getWorkspace().getNamespaceRegistry();
+        // Register the oai namespace if it's not found
+        if (!namespaceRegistry.isRegisteredPrefix("oai")) {
+            namespaceRegistry.registerNamespace("oai", oaiNamespace);
+        }
+
         if (!this.nodeService.exists(session, setsRootPath)) {
 
             log.info("Initializing OAI root {} ...", setsRootPath);
@@ -303,9 +311,6 @@ public class OAIProviderService {
             final Container root = this.containerService.findOrCreate(session, setsRootPath);
             session.save();
 
-            final NamespaceRegistry namespaceRegistry =
-                    (org.modeshape.jcr.api.NamespaceRegistry) session.getWorkspace().getNamespaceRegistry();
-            namespaceRegistry.registerNamespace("oai", oaiNamespace);
             final String repositoryName = descriptiveContent.get("repositoryName");
             final String description = descriptiveContent.get("description");
             final String adminEmail = descriptiveContent.get("adminEmail");
@@ -351,13 +356,12 @@ public class OAIProviderService {
 
         id.setEarliestDatestamp(dateFormat.print(root.getCreatedDate().getTime()));
 
-        id.setProtocolVersion(System.getProperty("2.0"));
+        id.setProtocolVersion("2.0");
 
         // repository name, project version
         RdfStream triples = root.getTriples(converter, PropertiesRdfContext.class).filter(
                 new PropertyPredicate(propertyOaiRepositoryName));
-        id.setRepositoryName(triples.next().getObject().getLiteralValue().toString()
-                + ", Version " + System.getProperty("project.version"));
+        id.setRepositoryName(triples.next().getObject().getLiteralValue().toString());
 
         // admin email
         triples = root.getTriples(converter, PropertiesRdfContext.class).filter(
