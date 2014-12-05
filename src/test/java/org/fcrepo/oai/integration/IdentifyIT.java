@@ -17,18 +17,14 @@ package org.fcrepo.oai.integration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
-import java.io.IOException;
-import java.io.StringWriter;
+import java.io.ByteArrayInputStream;
 
-import javax.annotation.PostConstruct;
 import javax.xml.bind.JAXBElement;
-import javax.xml.namespace.QName;
 
 import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
+import org.apache.http.util.EntityUtils;
 import org.junit.Test;
 import org.openarchives.oai._2.IdentifyType;
 import org.openarchives.oai._2.OAIPMHtype;
@@ -41,13 +37,20 @@ public class IdentifyIT extends AbstractOAIProviderIT {
     public void testIdentify() throws Exception {
         HttpResponse resp = getOAIPMHResponse(VerbType.IDENTIFY.value(), null, null, null, null, null);
         assertEquals(200, resp.getStatusLine().getStatusCode());
-        OAIPMHtype oaipmh =
-                ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
+        String responseContent = EntityUtils.toString(resp.getEntity());
+
+        OAIPMHtype oaipmh = ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(
+                        new ByteArrayInputStream(responseContent.getBytes()))).getValue();
         assertEquals(0, oaipmh.getError().size());
         assertNotNull(oaipmh.getIdentify());
         assertNotNull(oaipmh.getRequest());
         assertEquals(VerbType.IDENTIFY.value(), oaipmh.getRequest().getVerb().value());
-        assertEquals("Fedora 4", oaipmh.getIdentify().getRepositoryName());
+        IdentifyType identifyType = oaipmh.getIdentify();
+        assertEquals("Fedora " + System.getProperty("project.version"),
+                identifyType.getRepositoryName());
+        assertEquals("2.0", identifyType.getProtocolVersion());
+        assertTrue(responseContent.contains("An example repository description"));
+        assertTrue(oaipmh.getIdentify().getAdminEmail().contains("admin@example.com"));
         assertEquals(serverAddress, oaipmh.getIdentify().getBaseURL());
     }
 }

@@ -127,9 +127,19 @@ public class OAIProviderService {
 
     private String propertyIsPartOfSet;
 
+    private String propertyOaiRepositoryName;
+
+    private String propertyOaiDescription;
+
+    private String propertyOaiAdminEmail;
+
+    private String oaiNamespace;
+
     private boolean setsEnabled;
 
     private boolean autoGenerateOaiDc;
+
+    private Map<String, String> descriptiveContent;
 
     private Map<String, MetadataFormat> metadataFormats;
 
@@ -201,6 +211,38 @@ public class OAIProviderService {
     }
 
     /**
+     * Set propertyOaiRepositoryName
+     * @param propertyOaiRepositoryName
+     */
+    public void setPropertyOaiRepositoryName(final String propertyOaiRepositoryName) {
+        this.propertyOaiRepositoryName = propertyOaiRepositoryName;
+    }
+
+    /**
+     * Set propertyOaiDescription
+     * @param propertyOaiDescription
+     */
+    public void setPropertyOaiDescription(final String propertyOaiDescription) {
+        this.propertyOaiDescription = propertyOaiDescription;
+    }
+
+    /**
+     * Set propertyOaiAdminEmail
+     * @param propertyOaiAdminEmail
+     */
+    public void setPropertyOaiAdminEmail(final String propertyOaiAdminEmail) {
+        this.propertyOaiAdminEmail = propertyOaiAdminEmail;
+    }
+
+    /**
+     * Set oaiNamespace
+     * @param oaiNamespace
+     */
+    public void setOaiNamespace(final String oaiNamespace) {
+        this.oaiNamespace = oaiNamespace;
+    }
+
+    /**
      * Sets sets root path.
      *
      * @param setsRootPath the sets root path
@@ -237,6 +279,15 @@ public class OAIProviderService {
     }
 
     /**
+     * Sets descriptive content.
+     *
+     * @param descriptiveContent
+     */
+    public void setDescriptiveContent(final Map<String, String> descriptiveContent) {
+        this.descriptiveContent = descriptiveContent;
+    }
+
+    /**
      * Service intitialization
      *
      * @throws RepositoryException the repository exception
@@ -245,10 +296,30 @@ public class OAIProviderService {
     public void init() throws RepositoryException {
         /* check if set root node exists */
         final Session session = sessionFactory.getInternalSession();
-        if (!this.nodeService.exists(session, setsRootPath)) {
-            this.containerService.findOrCreate(session, setsRootPath);
+
+        final NamespaceRegistry namespaceRegistry =
+                (org.modeshape.jcr.api.NamespaceRegistry) session.getWorkspace().getNamespaceRegistry();
+        // Register the oai namespace if it's not found
+        if (!namespaceRegistry.isRegisteredPrefix("oai")) {
+            namespaceRegistry.registerNamespace("oai", oaiNamespace);
         }
-        session.save();
+
+        if (!this.nodeService.exists(session, setsRootPath)) {
+
+            log.info("Initializing OAI root {} ...", setsRootPath);
+
+            final Container root = this.containerService.findOrCreate(session, setsRootPath);
+            session.save();
+
+            final String repositoryName = descriptiveContent.get("repositoryName");
+            final String description = descriptiveContent.get("description");
+            final String adminEmail = descriptiveContent.get("adminEmail");
+            root.getNode().setProperty(getPropertyName(session,
+                    createProperty(propertyOaiRepositoryName)), repositoryName);
+            root.getNode().setProperty(getPropertyName(session, createProperty(propertyOaiDescription)), description);
+            root.getNode().setProperty(getPropertyName(session, createProperty(propertyOaiAdminEmail)), adminEmail);
+            session.save();
+        }
     }
 
     /**
@@ -274,18 +345,36 @@ public class OAIProviderService {
      */
     public JAXBElement<OAIPMHtype> identify(final Session session, final UriInfo uriInfo) throws RepositoryException,
             JAXBException {
+        final HttpResourceConverter converter = new HttpResourceConverter(session, uriInfo.getBaseUriBuilder()
+                .clone().path(FedoraNodes.class));
 
-        final FedoraResource root = this.nodeService.find(session, "/");
+        final FedoraResource root = this.nodeService.find(session, setsRootPath);
 
-        final IdentifyType id = this.oaiFactory.createIdentifyType();
+        final IdentifyType id = oaiFactory.createIdentifyType();
         // TODO: Need real values here from the root node?
         id.setBaseURL(uriInfo.getBaseUri().toASCIIString());
-        id.setEarliestDatestamp("INSTALL_DATE");
+
+        id.setEarliestDatestamp(dateFormat.print(root.getCreatedDate().getTime()));
+
         id.setProtocolVersion("2.0");
-        id.setRepositoryName("Fedora 4");
-        id.getAdminEmail().add(0,"admin@example.com");
-        final DescriptionType desc = this.oaiFactory.createDescriptionType();
-        desc.setAny(new JAXBElement<String>(new QName("general"), String.class, "An example repository description"));
+
+        // repository name, project version
+        RdfStream triples = root.getTriples(converter, PropertiesRdfContext.class).filter(
+                new PropertyPredicate(propertyOaiRepositoryName));
+        id.setRepositoryName(triples.next().getObject().getLiteralValue().toString());
+
+        // admin email
+        triples = root.getTriples(converter, PropertiesRdfContext.class).filter(
+                new PropertyPredicate(propertyOaiAdminEmail));
+        id.getAdminEmail().add(0, triples.next().getObject().getLiteralValue().toString());
+
+        // description
+        triples = root.getTriples(converter, PropertiesRdfContext.class).filter(
+                new PropertyPredicate(propertyOaiDescription));
+        final String description = triples.next().getObject().getLiteralValue().toString();
+        final DescriptionType desc = oaiFactory.createDescriptionType();
+        desc.setAny(new JAXBElement<String>(new QName("general"), String.class, description));
+
         id.getDescription().add(0, desc);
 
         final RequestType req = oaiFactory.createRequestType();

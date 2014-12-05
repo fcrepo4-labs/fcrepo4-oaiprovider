@@ -20,11 +20,22 @@
         <property name="propertyHasSets" value="http://fedora.info/definitions/v4/config#hasOAISet"/>
         <property name="propertySetName" value="http://fedora.info/definitions/v4/config#hasOAISetName"/>
         <property name="propertyHasSetSpec" value="http://fedora.info/definitions/v4/config#hasOAISetSpec"/>
+        <property name="propertyOaiRepositoryName" value="http://www.openarchives.org/OAI/2.0/repositoryName"/>
+        <property name="propertyOaiDescription" value="http://www.openarchives.org/OAI/2.0/description"/>
+        <property name="propertyOaiAdminEmail" value="http://www.openarchives.org/OAI/2.0/adminEmail"/>
+        <property name="oaiNamespace" value="http://www.openarchives.org/OAI/2.0/"/>
         <property name="metadataFormats">
             <map>
                 <entry key="oai_dc" value-ref="dublinCoreOaiFormat" />
                 <entry key="marc21" value-ref="marc21OaiFormat" />
                 <entry key="premis" value-ref="premisOaiFormat" />
+            </map>
+        </property>
+        <property name="descriptiveContent">
+            <map>
+                <entry key="repositoryName" value="Fedora ${project.version}" />
+                <entry key="description" value="An example repository description" />
+                <entry key="adminEmail" value="admin@example.com" />
             </map>
         </property>
     </bean>
