@@ -193,6 +193,11 @@
             </plugin>
             <plugin>
                 <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                      <project.version>${project.version}</project.version>
+                    </systemPropertyVariables>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -216,6 +221,9 @@
                 <version>2.12.1</version>
                 <configuration>
                     <excludes>**/integration/**/*</excludes>
+                    <systemPropertyVariables>
+                      <project.version>${project.version}</project.version>
+                    </systemPropertyVariables>
                 </configuration>
                 <dependencies>
                     <dependency>
