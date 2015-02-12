@@ -30,33 +30,33 @@ import org.openarchives.oai._2.VerbType;
 
 public class ListRecordsIT extends AbstractOAIProviderIT {
 
-	@Test
-	@SuppressWarnings("unchecked")
-	public void testListRecordsNoRecords() throws Exception {
-		final HttpResponse resp =
-				getOAIPMHResponse(VerbType.LIST_RECORDS.value(), null, "oai_dc", "2014-01-02T20:30:00Z",
-						"2014-01-01T20:30:00Z", null);
-		assertEquals(200, resp.getStatusLine().getStatusCode());
-		final OAIPMHtype oaipmh =
-				((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
-		assertNotNull(oaipmh.getRequest());
-		assertEquals(VerbType.LIST_RECORDS.value(), oaipmh.getRequest().getVerb().value());
-		assertEquals(1, oaipmh.getError().size());
-		assertEquals(OAIPMHerrorcodeType.NO_RECORDS_MATCH, oaipmh.getError().get(0).getCode());
-	}
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testListRecordsNoRecords() throws Exception {
+        final HttpResponse resp =
+                getOAIPMHResponse(VerbType.LIST_RECORDS.value(), null, "oai_dc", "2014-01-02T20:30:00Z",
+                        "2014-01-01T20:30:00Z", null);
+        assertEquals(200, resp.getStatusLine().getStatusCode());
+        final OAIPMHtype oaipmh =
+                ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
+        assertNotNull(oaipmh.getRequest());
+        assertEquals(VerbType.LIST_RECORDS.value(), oaipmh.getRequest().getVerb().value());
+        assertEquals(1, oaipmh.getError().size());
+        assertEquals(OAIPMHerrorcodeType.NO_RECORDS_MATCH, oaipmh.getError().get(0).getCode());
+    }
 
-	@Test
-	@SuppressWarnings("unchecked")
-	public void testListRecords() throws Exception {
-		createFedoraObject("oai-test-" + RandomStringUtils.randomAlphabetic(16));
-		final HttpResponse resp =
-				getOAIPMHResponse(VerbType.LIST_RECORDS.value(), null, "oai_dc", null, null, null);
-		assertEquals(200, resp.getStatusLine().getStatusCode());
-		final OAIPMHtype oaipmh =
-				((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
-		assertNotNull(oaipmh.getRequest());
-		assertEquals(VerbType.LIST_RECORDS.value(), oaipmh.getRequest().getVerb().value());
-		assertEquals(0, oaipmh.getError().size());
-		assertTrue(oaipmh.getListRecords().getRecord().size() > 0);
-	}
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testListRecords() throws Exception {
+        createFedoraObject("oai-test-" + RandomStringUtils.randomAlphabetic(16));
+        final HttpResponse resp =
+                getOAIPMHResponse(VerbType.LIST_RECORDS.value(), null, "oai_dc", null, null, null);
+        assertEquals(200, resp.getStatusLine().getStatusCode());
+        final OAIPMHtype oaipmh =
+                ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
+        assertNotNull(oaipmh.getRequest());
+        assertEquals(VerbType.LIST_RECORDS.value(), oaipmh.getRequest().getVerb().value());
+        assertEquals(0, oaipmh.getError().size());
+        assertTrue(oaipmh.getListRecords().getRecord().size() > 0);
+    }
 }

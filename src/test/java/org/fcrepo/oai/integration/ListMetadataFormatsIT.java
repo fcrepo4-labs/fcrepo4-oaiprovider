@@ -29,61 +29,61 @@ import org.openarchives.oai._2.VerbType;
 
 public class ListMetadataFormatsIT extends AbstractOAIProviderIT {
 
-	@SuppressWarnings("unchecked")
-	@Test
-	public void testListAvailableMetadataTypes() throws Exception {
-		final HttpResponse resp = getOAIPMHResponse(VerbType.LIST_METADATA_FORMATS.value(), null, null, null, null, null);
-		assertEquals(200, resp.getStatusLine().getStatusCode());
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testListAvailableMetadataTypes() throws Exception {
+        final HttpResponse resp = getOAIPMHResponse(VerbType.LIST_METADATA_FORMATS.value(), null, null, null, null, null);
+        assertEquals(200, resp.getStatusLine().getStatusCode());
 
-		final OAIPMHtype oaipmh =
-				((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
-		assertEquals(0, oaipmh.getError().size());
-		assertNotNull(oaipmh.getListMetadataFormats());
-		assertEquals(3, oaipmh.getListMetadataFormats().getMetadataFormat().size());
-		assertEquals("oai_dc", oaipmh.getListMetadataFormats().getMetadataFormat().get(0).getMetadataPrefix());
-		assertEquals("http://www.openarchives.org/OAI/2.0/oai_dc/", oaipmh.getListMetadataFormats()
-				.getMetadataFormat().get(0).getMetadataNamespace());
-		assertEquals("http://www.openarchives.org/OAI/2.0/oai_dc.xsd", oaipmh.getListMetadataFormats()
-				.getMetadataFormat().get(0).getSchema());
-		assertNotNull(oaipmh.getRequest());
-		assertEquals(VerbType.LIST_METADATA_FORMATS.value(), oaipmh.getRequest().getVerb().value());
-	}
+        final OAIPMHtype oaipmh =
+                ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
+        assertEquals(0, oaipmh.getError().size());
+        assertNotNull(oaipmh.getListMetadataFormats());
+        assertEquals(3, oaipmh.getListMetadataFormats().getMetadataFormat().size());
+        assertEquals("oai_dc", oaipmh.getListMetadataFormats().getMetadataFormat().get(0).getMetadataPrefix());
+        assertEquals("http://www.openarchives.org/OAI/2.0/oai_dc/", oaipmh.getListMetadataFormats()
+                .getMetadataFormat().get(0).getMetadataNamespace());
+        assertEquals("http://www.openarchives.org/OAI/2.0/oai_dc.xsd", oaipmh.getListMetadataFormats()
+                .getMetadataFormat().get(0).getSchema());
+        assertNotNull(oaipmh.getRequest());
+        assertEquals(VerbType.LIST_METADATA_FORMATS.value(), oaipmh.getRequest().getVerb().value());
+    }
 
-	@SuppressWarnings("unchecked")
-	@Test
-	public void testListNonExistingObjectMetadataTypes() throws Exception {
-		final HttpResponse resp =
-				getOAIPMHResponse(VerbType.LIST_METADATA_FORMATS.value(), "non-existing-pid", "oai_dc", null, null,
-						null);
-		assertEquals(200, resp.getStatusLine().getStatusCode());
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testListNonExistingObjectMetadataTypes() throws Exception {
+        final HttpResponse resp =
+                getOAIPMHResponse(VerbType.LIST_METADATA_FORMATS.value(), "non-existing-pid", "oai_dc", null, null,
+                        null);
+        assertEquals(200, resp.getStatusLine().getStatusCode());
 
-		final OAIPMHtype oaipmh =
-				((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
-		assertEquals(1, oaipmh.getError().size());
-		assertEquals(OAIPMHerrorcodeType.ID_DOES_NOT_EXIST, oaipmh.getError().get(0).getCode());
-	}
+        final OAIPMHtype oaipmh =
+                ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
+        assertEquals(1, oaipmh.getError().size());
+        assertEquals(OAIPMHerrorcodeType.ID_DOES_NOT_EXIST, oaipmh.getError().get(0).getCode());
+    }
 
-	@SuppressWarnings("unchecked")
-	@Test
-	public void testListObjectMetadataTypes() throws Exception {
-		final String pid = "oai-test-" + RandomStringUtils.randomAlphabetic(8);
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testListObjectMetadataTypes() throws Exception {
+        final String pid = "oai-test-" + RandomStringUtils.randomAlphabetic(8);
 
-		this.createFedoraObject(pid);
+        this.createFedoraObject(pid);
 
-		final HttpResponse resp = getOAIPMHResponse(VerbType.LIST_METADATA_FORMATS.value(), pid, null, null, null, null);
-		assertEquals(200, resp.getStatusLine().getStatusCode());
+        final HttpResponse resp = getOAIPMHResponse(VerbType.LIST_METADATA_FORMATS.value(), pid, null, null, null, null);
+        assertEquals(200, resp.getStatusLine().getStatusCode());
 
-		final OAIPMHtype oaipmh =
-				((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
-		assertEquals(0, oaipmh.getError().size());
-		assertNotNull(oaipmh.getListMetadataFormats());
-		assertEquals(1, oaipmh.getListMetadataFormats().getMetadataFormat().size());
-		assertEquals("oai_dc", oaipmh.getListMetadataFormats().getMetadataFormat().get(0).getMetadataPrefix());
-		assertEquals("http://www.openarchives.org/OAI/2.0/oai_dc/", oaipmh.getListMetadataFormats()
-				.getMetadataFormat().get(0).getMetadataNamespace());
-		assertEquals("http://www.openarchives.org/OAI/2.0/oai_dc.xsd", oaipmh.getListMetadataFormats()
-				.getMetadataFormat().get(0).getSchema());
-		assertNotNull(oaipmh.getRequest());
-		assertEquals(VerbType.LIST_METADATA_FORMATS.value(), oaipmh.getRequest().getVerb().value());
-	}
+        final OAIPMHtype oaipmh =
+                ((JAXBElement<OAIPMHtype>) this.unmarshaller.unmarshal(resp.getEntity().getContent())).getValue();
+        assertEquals(0, oaipmh.getError().size());
+        assertNotNull(oaipmh.getListMetadataFormats());
+        assertEquals(1, oaipmh.getListMetadataFormats().getMetadataFormat().size());
+        assertEquals("oai_dc", oaipmh.getListMetadataFormats().getMetadataFormat().get(0).getMetadataPrefix());
+        assertEquals("http://www.openarchives.org/OAI/2.0/oai_dc/", oaipmh.getListMetadataFormats()
+                .getMetadataFormat().get(0).getMetadataNamespace());
+        assertEquals("http://www.openarchives.org/OAI/2.0/oai_dc.xsd", oaipmh.getListMetadataFormats()
+                .getMetadataFormat().get(0).getSchema());
+        assertNotNull(oaipmh.getRequest());
+        assertEquals(VerbType.LIST_METADATA_FORMATS.value(), oaipmh.getRequest().getVerb().value());
+    }
 }

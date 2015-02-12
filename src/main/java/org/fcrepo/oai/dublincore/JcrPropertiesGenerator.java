@@ -38,50 +38,50 @@ import com.hp.hpl.jena.graph.Triple;
  * @author Frank Asseg
  */
 public class JcrPropertiesGenerator {
-	private static final ObjectFactory dcFactory = new ObjectFactory();
-	private static final org.openarchives.oai._2_0.oai_dc.ObjectFactory oaiDcFactory =
-			new org.openarchives.oai._2_0.oai_dc.ObjectFactory();
+    private static final ObjectFactory dcFactory = new ObjectFactory();
+    private static final org.openarchives.oai._2_0.oai_dc.ObjectFactory oaiDcFactory =
+            new org.openarchives.oai._2_0.oai_dc.ObjectFactory();
 
 
-	/**
-	 * Generate dC.
-	 *
-	 * @param obj the obj
-	 * @return the jAXB element
-	 */
-	public JAXBElement<OaiDcType> generateDC(final Session session, final Container obj, final UriInfo uriInfo)
-			throws RepositoryException {
+    /**
+     * Generate dC.
+     *
+     * @param obj the obj
+     * @return the jAXB element
+     */
+    public JAXBElement<OaiDcType> generateDC(final Session session, final Container obj, final UriInfo uriInfo)
+            throws RepositoryException {
 
-		final HttpResourceConverter converter = new HttpResourceConverter(session, uriInfo.getBaseUriBuilder()
-				.clone().path(FedoraNodes.class));
-		final OaiDcType oaidc = oaiDcFactory.createOaiDcType();
+        final HttpResourceConverter converter = new HttpResourceConverter(session, uriInfo.getBaseUriBuilder()
+                .clone().path(FedoraNodes.class));
+        final OaiDcType oaidc = oaiDcFactory.createOaiDcType();
 
-		final ElementType valId = dcFactory.createElementType();
-		valId.setValue(escape(converter.toDomain(obj.getPath()).getURI()));
-		oaidc.getTitleOrCreatorOrSubject().add(dcFactory.createIdentifier(valId));
+        final ElementType valId = dcFactory.createElementType();
+        valId.setValue(escape(converter.toDomain(obj.getPath()).getURI()));
+        oaidc.getTitleOrCreatorOrSubject().add(dcFactory.createIdentifier(valId));
 
-		final ElementType valCreated = dcFactory.createElementType();
-		valCreated.setValue(escape(obj.getCreatedDate().toString()));
-		oaidc.getTitleOrCreatorOrSubject().add(dcFactory.createDate(valCreated));
+        final ElementType valCreated = dcFactory.createElementType();
+        valCreated.setValue(escape(obj.getCreatedDate().toString()));
+        oaidc.getTitleOrCreatorOrSubject().add(dcFactory.createDate(valCreated));
 
-		final ElementType valCreator = dcFactory.createElementType();
-		valCreator.setValue(escape(obj.getProperty("jcr:createdBy").getValue().getString()));
-		oaidc.getTitleOrCreatorOrSubject().add(dcFactory.createCreator(valCreator));
+        final ElementType valCreator = dcFactory.createElementType();
+        valCreator.setValue(escape(obj.getProperty("jcr:createdBy").getValue().getString()));
+        oaidc.getTitleOrCreatorOrSubject().add(dcFactory.createCreator(valCreator));
 
-		final RdfStream triples = obj.getTriples(converter, PropertiesRdfContext.class);
-		while (triples.hasNext()) {
-			final ElementType valRel = dcFactory.createElementType();
-			final Triple triple = triples.next();
-			valRel.setValue(escape(triple.getPredicate().toString() + " " + triple.getObject().toString()));
-			oaidc.getTitleOrCreatorOrSubject().add(dcFactory.createRelation(valRel));
-		}
+        final RdfStream triples = obj.getTriples(converter, PropertiesRdfContext.class);
+        while (triples.hasNext()) {
+            final ElementType valRel = dcFactory.createElementType();
+            final Triple triple = triples.next();
+            valRel.setValue(escape(triple.getPredicate().toString() + " " + triple.getObject().toString()));
+            oaidc.getTitleOrCreatorOrSubject().add(dcFactory.createRelation(valRel));
+        }
 
-		oaidc.getTitleOrCreatorOrSubject().add(dcFactory.createSubject(valId));
+        oaidc.getTitleOrCreatorOrSubject().add(dcFactory.createSubject(valId));
 
-		return oaiDcFactory.createDc(oaidc);
-	}
+        return oaiDcFactory.createDc(oaidc);
+    }
 
-	private String escape(final String orig) {
-		return StringEscapeUtils.escapeXml(orig);
-	}
+    private String escape(final String orig) {
+        return StringEscapeUtils.escapeXml(orig);
+    }
 }
