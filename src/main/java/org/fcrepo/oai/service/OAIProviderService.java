@@ -15,8 +15,8 @@
  */
 package org.fcrepo.oai.service;
 
-import static java.util.Collections.emptyMap;
 import static com.hp.hpl.jena.rdf.model.ResourceFactory.createProperty;
+import static java.util.Collections.emptyMap;
 import static org.fcrepo.kernel.impl.rdf.converters.PropertyConverter.getPropertyNameFromPredicate;
 
 import java.io.IOException;
@@ -67,9 +67,9 @@ import org.fcrepo.kernel.services.NodeService;
 import org.fcrepo.kernel.services.RepositoryService;
 import org.fcrepo.kernel.utils.iterators.RdfStream;
 import org.fcrepo.oai.dublincore.JcrPropertiesGenerator;
-import org.fcrepo.oai.rdf.PropertyPredicate;
 import org.fcrepo.oai.http.ResumptionToken;
 import org.fcrepo.oai.jersey.XmlDeclarationStrippingInputStream;
+import org.fcrepo.oai.rdf.PropertyPredicate;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
@@ -211,7 +211,7 @@ public class OAIProviderService {
 
     /**
      * Set propertyOaiRepositoryName
-     * @param propertyOaiRepositoryName
+     * @param propertyOaiRepositoryName the property oai repository name
      */
     public void setPropertyOaiRepositoryName(final String propertyOaiRepositoryName) {
         this.propertyOaiRepositoryName = propertyOaiRepositoryName;
@@ -219,7 +219,7 @@ public class OAIProviderService {
 
     /**
      * Set propertyOaiDescription
-     * @param propertyOaiDescription
+     * @param propertyOaiDescription the property oai description
      */
     public void setPropertyOaiDescription(final String propertyOaiDescription) {
         this.propertyOaiDescription = propertyOaiDescription;
@@ -227,7 +227,7 @@ public class OAIProviderService {
 
     /**
      * Set propertyOaiAdminEmail
-     * @param propertyOaiAdminEmail
+     * @param propertyOaiAdminEmail the property oai admin email
      */
     public void setPropertyOaiAdminEmail(final String propertyOaiAdminEmail) {
         this.propertyOaiAdminEmail = propertyOaiAdminEmail;
@@ -235,7 +235,7 @@ public class OAIProviderService {
 
     /**
      * Set oaiNamespace
-     * @param oaiNamespace
+     * @param oaiNamespace the oai namespace
      */
     public void setOaiNamespace(final String oaiNamespace) {
         this.oaiNamespace = oaiNamespace;
@@ -280,7 +280,7 @@ public class OAIProviderService {
     /**
      * Sets descriptive content.
      *
-     * @param descriptiveContent
+     * @param descriptiveContent the descriptive content
      */
     public void setDescriptiveContent(final Map<String, String> descriptiveContent) {
         this.descriptiveContent = descriptiveContent;
@@ -343,7 +343,7 @@ public class OAIProviderService {
      * @throws JAXBException the jAXB exception
      */
     public JAXBElement<OAIPMHtype> identify(final Session session, final UriInfo uriInfo) throws RepositoryException,
-            JAXBException {
+    JAXBException {
         final HttpResourceConverter converter = new HttpResourceConverter(session, uriInfo.getBaseUriBuilder()
                 .clone().path(FedoraNodes.class));
 
@@ -493,7 +493,7 @@ public class OAIProviderService {
             record = this.createRecord(session, format, obj.getPath(), uriInfo);
             getRecord.setRecord(record);
             oai.setGetRecord(getRecord);
-            return this.oaiFactory.createOAIPMH(oai);
+            return oaiFactory.createOAIPMH(oai);
         } catch (final IOException e) {
             log.error("Unable to create OAI record for object " + obj.getPath());
             return error(VerbType.GET_RECORD, identifier, metadataPrefix, OAIPMHerrorcodeType.ID_DOES_NOT_EXIST,
@@ -569,9 +569,9 @@ public class OAIProviderService {
      * @throws RepositoryException the repository exception
      */
     public JAXBElement<OAIPMHtype> listIdentifiers(final Session session, final UriInfo uriInfo,
-                                                   final String metadataPrefix, final String from, final String until,
-                                                   final String set, final int offset)
-            throws RepositoryException {
+            final String metadataPrefix, final String from, final String until,
+            final String set, final int offset)
+                    throws RepositoryException {
 
         if (metadataPrefix == null) {
             return error(VerbType.LIST_IDENTIFIERS, null, null, OAIPMHerrorcodeType.BAD_ARGUMENT,
@@ -676,12 +676,12 @@ public class OAIProviderService {
             final String until, final String set, final int offset) throws UnsupportedEncodingException {
 
         final String[] data = new String[] {
-            urlEncode(verb),
-            urlEncode(metadataPrefix),
-            urlEncode(from != null ? from : ""),
-            urlEncode(until != null ? until : ""),
-            urlEncode(set != null ? set : ""),
-            urlEncode(String.valueOf(offset))
+                urlEncode(verb),
+                urlEncode(metadataPrefix),
+                urlEncode(from != null ? from : ""),
+                urlEncode(until != null ? until : ""),
+                urlEncode(set != null ? set : ""),
+                urlEncode(String.valueOf(offset))
         };
         return Base64.encodeBase64URLSafeString(StringUtils.join(data, ':').getBytes("UTF-8"));
     }
@@ -826,8 +826,8 @@ public class OAIProviderService {
 
             sparql.setLength(0);
             sparql.append("INSERT DATA {")
-                    .append("<" + converter.toDomain(setObject.getPath()) + "> <" + propertySetName +
-                            "> '" + set.getSetName() + "' .")
+            .append("<" + converter.toDomain(setObject.getPath()) + "> <" + propertySetName +
+                    "> '" + set.getSetName() + "' .")
                     .append("<" + converter.toDomain(setObject.getPath()) + "> <" + propertyHasSetSpec +
                             "> '" + set.getSetSpec() + "' .");
             for (final DescriptionType desc : set.getSetDescription()) {
@@ -869,8 +869,8 @@ public class OAIProviderService {
      * @throws RepositoryException the repository exception
      */
     public JAXBElement<OAIPMHtype> listRecords(final Session session, final UriInfo uriInfo,
-                                               final String metadataPrefix, final String from, final String until,
-                                               final String set, final int offset) throws RepositoryException {
+            final String metadataPrefix, final String from, final String until,
+            final String set, final int offset) throws RepositoryException {
 
         final HttpResourceConverter converter =
                 new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
@@ -940,7 +940,7 @@ public class OAIProviderService {
     }
 
     private RecordType createRecord(final Session session, final MetadataFormat mdf, final String s,
-                                    final UriInfo uriInfo) throws IOException, RepositoryException {
+            final UriInfo uriInfo) throws IOException, RepositoryException {
 
         final HttpResourceConverter converter = new HttpResourceConverter(session, uriInfo.getBaseUriBuilder().clone()
                 .path(FedoraNodes.class));
@@ -961,14 +961,14 @@ public class OAIProviderService {
         }
         for (final String name : setNames) {
             final Container setObject = this.containerService.findOrCreate(session,
-                                                                           setsRootPath + "/" + name);
+                    setsRootPath + "/" + name);
             final RdfStream setTriples = setObject.getTriples(converter, PropertiesRdfContext.class).filter(
                     new PropertyPredicate(propertyHasSetSpec));
             h.getSetSpec().add(setTriples.next().getObject().getLiteralValue().toString());
         }
 
         // get the metadata record from fcrepo
-        final MetadataType md = this.oaiFactory.createMetadataType();
+        final MetadataType md = oaiFactory.createMetadataType();
         if (mdf.getPrefix().equals("oai_dc")) {
             /* generate a OAI DC reponse using the DC Generator from fcrepo4 */
             md.setAny(generateOaiDc(session, obj, uriInfo));
@@ -977,14 +977,14 @@ public class OAIProviderService {
             md.setAny(fetchOaiResponse(obj, session, mdf, uriInfo));
         }
 
-        final RecordType record = this.oaiFactory.createRecordType();
+        final RecordType record = oaiFactory.createRecordType();
         record.setMetadata(md);
         record.setHeader(h);
         return record;
     }
 
     private String listResourceQuery(final Session session, final String mixinTypes, final String from,
-        final String until, final String set, final int limit, final int offset) throws RepositoryException {
+            final String until, final String set, final int limit, final int offset) throws RepositoryException {
 
         final String propJcrPath = getPropertyName(session,
                 createProperty(RdfLexicon.JCR_NAMESPACE + "path"));
@@ -1018,7 +1018,7 @@ public class OAIProviderService {
 
         if (limit > 0) {
             jql.append(" LIMIT ").append(maxListSize)
-                    .append(" OFFSET ").append(offset);
+            .append(" OFFSET ").append(offset);
         }
         return jql.toString();
     }

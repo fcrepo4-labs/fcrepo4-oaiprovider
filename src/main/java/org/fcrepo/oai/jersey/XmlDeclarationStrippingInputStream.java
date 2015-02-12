@@ -21,7 +21,7 @@ import java.io.InputStream;
 /**
  * An {@link InputStream} implementation which strips the leading XML
  * Declaration of a XML document If the xml document starts with
- * <code><?xml...?></code>, the implementation will skip these bytes and start
+ * {@code<?xml...?>}, the implementation will skip these bytes and start
  * streaming directly after the XML declaration
  *
  * @author frank asseg

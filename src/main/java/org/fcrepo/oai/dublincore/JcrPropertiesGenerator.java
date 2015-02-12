@@ -15,7 +15,11 @@
  */
 package org.fcrepo.oai.dublincore;
 
-import com.hp.hpl.jena.graph.Triple;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.ws.rs.core.UriInfo;
+import javax.xml.bind.JAXBElement;
+
 import org.apache.commons.lang.StringEscapeUtils;
 import org.fcrepo.http.api.FedoraNodes;
 import org.fcrepo.http.commons.api.rdf.HttpResourceConverter;
@@ -26,10 +30,7 @@ import org.openarchives.oai._2_0.oai_dc.OaiDcType;
 import org.purl.dc.elements._1.ElementType;
 import org.purl.dc.elements._1.ObjectFactory;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.ws.rs.core.UriInfo;
-import javax.xml.bind.JAXBElement;
+import com.hp.hpl.jena.graph.Triple;
 
 /**
  * The type Jcr properties generator.
@@ -53,31 +54,31 @@ public class JcrPropertiesGenerator {
 
         final HttpResourceConverter converter = new HttpResourceConverter(session, uriInfo.getBaseUriBuilder()
                 .clone().path(FedoraNodes.class));
-        final OaiDcType oaidc = this.oaiDcFactory.createOaiDcType();
+        final OaiDcType oaidc = oaiDcFactory.createOaiDcType();
 
-        final ElementType valId = this.dcFactory.createElementType();
+        final ElementType valId = dcFactory.createElementType();
         valId.setValue(escape(converter.toDomain(obj.getPath()).getURI()));
-        oaidc.getTitleOrCreatorOrSubject().add(this.dcFactory.createIdentifier(valId));
+        oaidc.getTitleOrCreatorOrSubject().add(dcFactory.createIdentifier(valId));
 
-        final ElementType valCreated = this.dcFactory.createElementType();
+        final ElementType valCreated = dcFactory.createElementType();
         valCreated.setValue(escape(obj.getCreatedDate().toString()));
-        oaidc.getTitleOrCreatorOrSubject().add(this.dcFactory.createDate(valCreated));
+        oaidc.getTitleOrCreatorOrSubject().add(dcFactory.createDate(valCreated));
 
-        final ElementType valCreator = this.dcFactory.createElementType();
+        final ElementType valCreator = dcFactory.createElementType();
         valCreator.setValue(escape(obj.getProperty("jcr:createdBy").getValue().getString()));
-        oaidc.getTitleOrCreatorOrSubject().add(this.dcFactory.createCreator(valCreator));
+        oaidc.getTitleOrCreatorOrSubject().add(dcFactory.createCreator(valCreator));
 
         final RdfStream triples = obj.getTriples(converter, PropertiesRdfContext.class);
         while (triples.hasNext()) {
-            final ElementType valRel = this.dcFactory.createElementType();
+            final ElementType valRel = dcFactory.createElementType();
             final Triple triple = triples.next();
             valRel.setValue(escape(triple.getPredicate().toString() + " " + triple.getObject().toString()));
-            oaidc.getTitleOrCreatorOrSubject().add(this.dcFactory.createRelation(valRel));
+            oaidc.getTitleOrCreatorOrSubject().add(dcFactory.createRelation(valRel));
         }
 
-        oaidc.getTitleOrCreatorOrSubject().add(this.dcFactory.createSubject(valId));
+        oaidc.getTitleOrCreatorOrSubject().add(dcFactory.createSubject(valId));
 
-        return this.oaiDcFactory.createDc(oaidc);
+        return oaiDcFactory.createDc(oaidc);
     }
 
     private String escape(final String orig) {

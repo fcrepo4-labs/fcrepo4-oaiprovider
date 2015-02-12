@@ -15,21 +15,23 @@
  */
 package org.fcrepo.oai.jersey;
 
-import com.sun.xml.bind.marshaller.CharacterEscapeHandler;
-import org.openarchives.oai._2.OAIPMHtype;
-import org.openarchives.oai._2_0.oai_dc.OaiDcType;
+import java.io.IOException;
+import java.io.Writer;
 
 import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Provider;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
-import java.io.IOException;
-import java.io.Writer;
+
+import org.openarchives.oai._2.OAIPMHtype;
+import org.openarchives.oai._2_0.oai_dc.OaiDcType;
+
+import com.sun.xml.bind.marshaller.CharacterEscapeHandler;
 
 /**
  * The type Oai jaxb provider.
- * 
+ *
  * @author Frank Asseg
  */
 @Provider
@@ -47,7 +49,7 @@ public class OaiJaxbProvider implements ContextResolver<Marshaller> {
         this.marshaller.setProperty("com.sun.xml.bind.marshaller.CharacterEscapeHandler", new CharacterEscapeHandler() {
             @Override
             public void escape(final char[] chars, final int start, final int len, final boolean isAttr,
-                               final Writer writer) throws IOException {
+                    final Writer writer) throws IOException {
                 final StringBuilder data = new StringBuilder(len);
                 for (int i = start; i < len + start; i++) {
                     if (chars[i] == '&') {
