@@ -228,7 +228,7 @@
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <version>2.14</version>
                 <configuration>
-                    <excludes>**/integration/**/*</excludes>
+                    <excludes>**/integration/**/*, **/purl/**/**/**/*, **/openarchives/**/**/*</excludes>
                     <systemPropertyVariables>
                       <project.version>${project.version}</project.version>
                     </systemPropertyVariables>
