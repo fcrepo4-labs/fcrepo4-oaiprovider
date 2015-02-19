@@ -45,8 +45,11 @@ public class JcrPropertiesGenerator {
     /**
      * Generate dC.
      *
+     * @param session the session
      * @param obj the obj
+     * @param uriInfo the uri info
      * @return the jAXB element
+     * @throws RepositoryException if repository exception occurred
      */
     public JAXBElement<OaiDcType> generateDC(final Session session, final Container obj, final UriInfo uriInfo)
             throws RepositoryException {
