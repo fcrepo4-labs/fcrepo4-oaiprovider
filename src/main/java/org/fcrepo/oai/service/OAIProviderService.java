@@ -211,7 +211,7 @@ public class OAIProviderService {
 
     /**
      * Set propertyOaiRepositoryName
-     * @param propertyOaiRepositoryName
+     * @param propertyOaiRepositoryName the oai repository name
      */
     public void setPropertyOaiRepositoryName(final String propertyOaiRepositoryName) {
         this.propertyOaiRepositoryName = propertyOaiRepositoryName;
@@ -219,7 +219,7 @@ public class OAIProviderService {
 
     /**
      * Set propertyOaiDescription
-     * @param propertyOaiDescription
+     * @param propertyOaiDescription the oai description
      */
     public void setPropertyOaiDescription(final String propertyOaiDescription) {
         this.propertyOaiDescription = propertyOaiDescription;
@@ -227,7 +227,7 @@ public class OAIProviderService {
 
     /**
      * Set propertyOaiAdminEmail
-     * @param propertyOaiAdminEmail
+     * @param propertyOaiAdminEmail the oai admin email
      */
     public void setPropertyOaiAdminEmail(final String propertyOaiAdminEmail) {
         this.propertyOaiAdminEmail = propertyOaiAdminEmail;
@@ -235,7 +235,7 @@ public class OAIProviderService {
 
     /**
      * Set oaiNamespace
-     * @param oaiNamespace
+     * @param oaiNamespace the oai namespace
      */
     public void setOaiNamespace(final String oaiNamespace) {
         this.oaiNamespace = oaiNamespace;
@@ -280,7 +280,7 @@ public class OAIProviderService {
     /**
      * Sets descriptive content.
      *
-     * @param descriptiveContent
+     * @param descriptiveContent the descriptive content
      */
     public void setDescriptiveContent(final Map<String, String> descriptiveContent) {
         this.descriptiveContent = descriptiveContent;
