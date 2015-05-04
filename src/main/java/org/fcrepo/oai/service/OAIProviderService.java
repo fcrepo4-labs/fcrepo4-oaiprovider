@@ -822,7 +822,7 @@ public class OAIProviderService {
             final StringBuilder sparql =
                     new StringBuilder("INSERT DATA {<" + converter.toDomain(setRoot.getPath()) + "> <" +
                             propertyHasSets + "> <" + converter.toDomain(setObject.getPath()) + ">}");
-            setRoot.updateProperties(converter, sparql.toString(), new RdfStream(), containerService);
+            setRoot.updateProperties(converter, sparql.toString(), new RdfStream());
 
             sparql.setLength(0);
             sparql.append("INSERT DATA {")
@@ -834,7 +834,7 @@ public class OAIProviderService {
                 // TODO: save description
             }
             sparql.append("}");
-            setObject.updateProperties(converter, sparql.toString(), new RdfStream(), containerService);
+            setObject.updateProperties(converter, sparql.toString(), new RdfStream());
             session.save();
             return setObject.getPath();
         } catch (final JAXBException e) {
