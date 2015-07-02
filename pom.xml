@@ -8,7 +8,7 @@
     </parent>
 
     <groupId>org.fcrepo</groupId>
-    <artifactId>fcrepo-oaiprovider</artifactId>
+    <artifactId>fcrepo4-oaiprovider</artifactId>
     <description>The Fedora Commons repository OAI provider.</description>
     <packaging>bundle</packaging>
 
@@ -26,6 +26,14 @@
       </repository>
     </repositories>
 
+    <scm>
+      <connection>scm:git:git://github.com/fcrepo4-labs/${project.artifactId}.git
+      </connection>
+      <developerConnection>scm:git:git@github.com:fcrepo4-labs/${project.artifactId}.git
+      </developerConnection>
+      <url>https://github.com/fcrepo4-labs/fcrepo4-oaiprovider</url>
+      <tag>HEAD</tag>
+    </scm>
 
   <dependencyManagement>
         <dependencies>
