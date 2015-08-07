@@ -15,9 +15,10 @@
  */
 package org.fcrepo.oai.rdf;
 
-import com.google.common.base.Predicate;
 import com.hp.hpl.jena.graph.Node;
 import com.hp.hpl.jena.graph.Triple;
+
+import java.util.function.Predicate;
 
 /**
  * The type Property predicate.
@@ -38,7 +39,7 @@ public class PropertyPredicate implements Predicate<Triple> {
     }
 
     @Override
-    public boolean apply(final Triple triple) {
+    public boolean test(final Triple triple) {
         final Node node = triple.getPredicate();
         return node.getURI().equals(property);
     }
