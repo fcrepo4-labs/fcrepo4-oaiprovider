@@ -12,6 +12,9 @@
     <description>The Fedora Commons repository OAI provider.</description>
     <packaging>bundle</packaging>
 
+    <properties>
+      <fcrepo-build-tools.version>4.3.0</fcrepo-build-tools.version>
+    </properties>
 
     <repositories>
       <repository>
@@ -255,7 +258,7 @@
                     <dependency>
                         <groupId>org.fcrepo</groupId>
                         <artifactId>fcrepo-build-tools</artifactId>
-                        <version>${project.version}</version>
+                        <version>${fcrepo-build-tools.version}</version>
                     </dependency>
                 </dependencies>
             </plugin>
