@@ -9,9 +9,6 @@
 
     <context:annotation-config/>
 
-    <!-- Mints PIDs-->
-    <bean class="org.fcrepo.mint.UUIDPidMinter"/>
-
     <bean name="jcrPropertiesGenerator" class="org.fcrepo.oai.dublincore.JcrPropertiesGenerator"/>
 
     <bean name="oaiProviderService" class="org.fcrepo.oai.service.OAIProviderService">
