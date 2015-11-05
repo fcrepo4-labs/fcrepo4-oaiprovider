@@ -46,7 +46,7 @@ public class IdentifyIT extends AbstractOAIProviderIT {
         assertNotNull(oaipmh.getRequest());
         assertEquals(VerbType.IDENTIFY.value(), oaipmh.getRequest().getVerb().value());
         IdentifyType identifyType = oaipmh.getIdentify();
-        assertEquals("Fedora " + System.getProperty("project.version"),
+        assertEquals("Fedora " + System.getProperty("fcrepo.version"),
                 identifyType.getRepositoryName());
         assertEquals("2.0", identifyType.getProtocolVersion());
         assertTrue(responseContent.contains("An example repository description"));
