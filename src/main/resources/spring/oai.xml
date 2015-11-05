@@ -33,7 +33,7 @@
         </property>
         <property name="descriptiveContent">
             <map>
-                <entry key="repositoryName" value="Fedora ${project.version}" />
+                <entry key="repositoryName" value="Fedora ${fcrepo.version}" />
                 <entry key="description" value="An example repository description" />
                 <entry key="adminEmail" value="admin@example.com" />
             </map>

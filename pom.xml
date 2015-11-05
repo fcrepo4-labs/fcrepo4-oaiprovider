@@ -13,7 +13,8 @@
     <packaging>bundle</packaging>
 
     <properties>
-      <fcrepo-build-tools.version>4.3.0</fcrepo-build-tools.version>
+      <fcrepo-build-tools.version>4.4.0</fcrepo-build-tools.version>
+      <fcrepo.version>4.4.1-SNAPSHOT</fcrepo.version>
     </properties>
 
     <repositories>
@@ -43,7 +44,7 @@
             <dependency>
                 <groupId>org.fcrepo</groupId>
                 <artifactId>fcrepo-jcr-bom</artifactId>
-                <version>${project.version}</version>
+                <version>${fcrepo.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -224,7 +225,7 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
                     <systemPropertyVariables>
-                      <project.version>${project.version}</project.version>
+                      <fcrepo.version>${fcrepo.version}</fcrepo.version>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
@@ -251,7 +252,7 @@
                 <configuration>
                     <excludes>**/integration/**/*, **/purl/**/**/**/*, **/openarchives/**/**/*</excludes>
                     <systemPropertyVariables>
-                      <project.version>${project.version}</project.version>
+                      <fcrepo.version>${fcrepo.version}</fcrepo.version>
                     </systemPropertyVariables>
                 </configuration>
                 <dependencies>

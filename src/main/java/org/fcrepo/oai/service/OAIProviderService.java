@@ -357,7 +357,7 @@ public class OAIProviderService {
 
         id.setProtocolVersion("2.0");
 
-        // repository name, project version
+        // repository name and version
         RdfStream triples = root.getTriples(converter, PropertiesRdfContext.class).filter(
                 new PropertyPredicate(propertyOaiRepositoryName));
         id.setRepositoryName(triples.next().getObject().getLiteralValue().toString());
