@@ -54,7 +54,7 @@ import org.fcrepo.http.api.FedoraLdp;
 import org.fcrepo.http.api.FedoraNodes;
 import org.fcrepo.http.commons.api.rdf.HttpResourceConverter;
 import org.fcrepo.http.commons.session.SessionFactory;
-import org.fcrepo.kernel.api.FedoraJcrTypes;
+import org.fcrepo.kernel.api.FedoraTypes;
 import org.fcrepo.kernel.api.RdfLexicon;
 import org.fcrepo.kernel.modeshape.rdf.converters.ValueConverter;
 import org.fcrepo.kernel.modeshape.rdf.impl.PropertiesRdfContext;
@@ -602,7 +602,7 @@ public class OAIProviderService {
                 uriInfo.getBaseUriBuilder().clone().path(FedoraNodes.class));
         final ValueConverter valueConverter = new ValueConverter(session, converter);
 
-        final String jql = listResourceQuery(session, FedoraJcrTypes.FEDORA_CONTAINER,
+        final String jql = listResourceQuery(session, FedoraTypes.FEDORA_CONTAINER,
                 from, until, set, maxListSize, offset);
         try {
             final QueryManager queryManager = session.getWorkspace().getQueryManager();
@@ -751,7 +751,7 @@ public class OAIProviderService {
                     createProperty(RdfLexicon.JCR_NAMESPACE + "path"));
             final String propOAISet_ref = getPropertyName(session, createProperty(propertyHasSets + "_ref"));
 
-            final String jql = "SELECT [" + propOAISet_ref + "] AS obj FROM [" + FedoraJcrTypes.FEDORA_RESOURCE + "]"
+            final String jql = "SELECT [" + propOAISet_ref + "] AS obj FROM [" + FedoraTypes.FEDORA_RESOURCE + "]"
                     + " WHERE [" + propJcrPath + "] = '" + setsRootPath + "'";
             final QueryManager queryManager = session.getWorkspace().getQueryManager();
             final RowIterator result = executeQuery(queryManager, jql);
@@ -770,7 +770,7 @@ public class OAIProviderService {
                 final Resource setRes = valueConverter.convert(row.getValue("obj")).asResource();
 
                 final String setJql = "SELECT [" + propHasOAISetName + "] AS name,"
-                        + " [" + propHasOAISetSpec + "] AS spec FROM [" + FedoraJcrTypes.FEDORA_RESOURCE + "]"
+                        + " [" + propHasOAISetSpec + "] AS spec FROM [" + FedoraTypes.FEDORA_RESOURCE + "]"
                         + " WHERE [" + propJcrPath + "] = '" + converter.convert(setRes).getPath() + "'";
 
                 final RowIterator setResult = executeQuery(queryManager, setJql);
@@ -900,7 +900,7 @@ public class OAIProviderService {
                     "Sets are not enabled");
         }
 
-        final String jql = listResourceQuery(session, FedoraJcrTypes.FEDORA_CONTAINER,
+        final String jql = listResourceQuery(session, FedoraTypes.FEDORA_CONTAINER,
                 from, until, set, maxListSize, offset);
         try {
 
@@ -991,7 +991,7 @@ public class OAIProviderService {
         final String propHasMixinType = getPropertyName(session, RdfLexicon.HAS_MIXIN_TYPE);
         final String propJcrLastModifiedDate = getPropertyName(session, RdfLexicon.LAST_MODIFIED_DATE);
         final StringBuilder jql = new StringBuilder();
-        jql.append("SELECT res.[" + propJcrPath + "] AS sub FROM [" + FedoraJcrTypes.FEDORA_RESOURCE + "] AS [res]");
+        jql.append("SELECT res.[" + propJcrPath + "] AS sub FROM [" + FedoraTypes.FEDORA_RESOURCE + "] AS [res]");
         jql.append(" WHERE ");
 
         // mixin type constraint
