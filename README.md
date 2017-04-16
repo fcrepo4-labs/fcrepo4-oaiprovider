@@ -7,7 +7,7 @@ Implements [Open Archives Protocol Version 2.0](http://www.openarchives.org/OAI/
 
 Implementation details
 -------------
-The OAI Provider exposes an endpoint at `/oai` which accepts OAI conforming HTTP requests.
+The OAI Provider exposes an endpoint at `http://localhost:8080/fcrepo/rest/oai` which accepts OAI conforming HTTP requests.
 A Fedora object containing the set information is created at `/oai/setspec`.
 For Set creation an endpoint at `/oai/sets` is exposed which accepts HTTP POST requests containing serialized Set information adhering to the OAI schema.
 
@@ -66,7 +66,7 @@ Currently installation involves copying files by hand to an exploded fcrepo4 web
 #> vim /path/to/fcrepo/WEB-INF/classes/spring/master.xml
 ```
 
-After restarting Fedora 4 the OAI Provider is available at /oai
+After restarting Fedora 4 the OAI Provider is available at http://localhost:8080/fcrepo/rest/oai
 
 
 Example
